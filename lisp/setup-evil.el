@@ -80,12 +80,6 @@
 
     "/"   'consult-line
 
-    "m u" 'mc/keyboard-quit
-    "m n" 'mc/mark-next-like-this
-    "m p" 'mc/mark-previous-like-this  ;; Выделить предыдущее
-    "m a" 'mc/mark-all-like-this     ;; Выделить ВСЕ такие слова в буфере
-    "m v" 'mc/edit-lines       ;; Создать курсоры на каждой строке выделения
-
     "a c" 'calfw-org-open-calendar;; Open Calendar
     "a a" 'org-agenda
     "a d" 'org-timestamp;;
