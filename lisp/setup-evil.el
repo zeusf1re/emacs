@@ -10,6 +10,7 @@
 (use-package evil-collection
   :after evil
   :config
+  (setq evil-collection-mode-list (remove 'dashboard evil-collection-mode-list))
   (evil-collection-init))
 
 ;; General (чтобы удобно биндить Space клавиши)

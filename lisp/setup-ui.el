@@ -1,6 +1,15 @@
 
 ;; ~/.config/emacs/lisp/setup-ui.el
 
+;; macOS: нативный fullscreen (F11) + максимизация при создании фрейма
+(setq ns-use-native-fullscreen t)
+(defun my/frame-maximize (frame)
+  "Максимизировать FRAME при создании (нужно для emacsclient)."
+  (when (display-graphic-p frame)
+    (set-frame-parameter frame 'fullscreen 'maximized)))
+(add-hook 'after-make-frame-functions #'my/frame-maximize)
+(my/frame-maximize (selected-frame))
+
 ;; Шрифты
 (set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 200)
 
@@ -39,5 +48,9 @@
 (setq scroll-margin 2              ; Начинать скроллить за 4 строки до края (как scrolloff в Vim)
       scroll-conservatively 101    ; Никогда не центрировать экран, просто сдвигать
       scroll-preserve-screen-position t) ; Сохранять позицию курсора при PageUp/Down
+;; Включаем поддержку нативного полноэкранного режима macOS (рекомендуется)
+(setq ns-use-native-fullscreen t)
 
+;; Устанавливаем полноэкранный режим для всех новых окон (фреймов)
+(add-to-list 'default-frame-alist '(fullscreen . fullscreen))
 (provide 'setup-ui)

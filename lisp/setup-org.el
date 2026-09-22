@@ -6,6 +6,7 @@
 ;;; === ORG MODE CONFIG ===
 (use-package org
   :ensure nil
+  :demand t
   :hook (org-mode . org-indent-mode)
   :config
   ;; --- 1. Внешний вид и поведение ---
@@ -82,8 +83,19 @@
   
   ;; Прозрачный фон для темной темы
   (setq org-format-latex-options
-        (plist-put org-format-latex-options :background "Transparent")))
+        (plist-put org-format-latex-options :background "Transparent"))
 
+  ;; --- 5. BABEL (выполнение SRC-блоков) ---
+  (setq org-confirm-babel-evaluate nil)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (python . t)
+     (shell . t)
+     (C . t)
+     (js . t)
+     (org . t))))
+(setq org-babel-python-command "python3")
 ;;; === ВНЕШНИЙ ВИД (Org Modern) ===
 (use-package org-modern
   :ensure t

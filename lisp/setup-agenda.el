@@ -1,4 +1,10 @@
 (setq org-agenda-files (directory-files-recursively "~/org" "\\.org$"))
+
+;; Вид: 7 дней начиная с сегодняшнего дня (а не календарная неделя)
+(setq org-agenda-start-on-weekday nil)  ; не привязываться к понедельнику
+(setq org-agenda-start-day "+0d")       ; начинать с сегодня
+(setq org-agenda-span 7)                ; 7 дней
+
 (use-package evil-org
   :ensure t
   :after org
