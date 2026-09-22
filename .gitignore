@@ -1,0 +1,29 @@
+# --- Пакеты (восстанавливаются сами) ---
+elpa/
+elpaca/
+eln-cache/
+
+# --- Кэш / runtime ---
+.cache/
+tmp/
+auto-save-list/
+eaf/
+dirvish/
+games/
+tutorial/
+url/
+
+# --- Личное / сессии (не конфиг) ---
+bookmarks
+projects
+tramp
+projectile-bookmarks.eld
+.mc-lists.el
+.projectile
+.lsp-session-v1
+recentf
+
+# --- Скрытые мусорные файлы ---
+*~
+\#*\#
+.\#*
