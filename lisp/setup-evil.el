@@ -1,19 +1,16 @@
-;; Evil (Vim layer)
 (use-package evil
   :init
   (setq evil-want-integration t)
-  (setq evil-want-keybinding nil) ;; Нужно для evil-collection
+  (setq evil-want-keybinding nil) 
   :config
   (evil-mode 1))
 
-;; Evil Collection (биндинги для всех плагинов, как в Doom)
 (use-package evil-collection
   :after evil
   :config
   (setq evil-collection-mode-list (remove 'dashboard evil-collection-mode-list))
   (evil-collection-init))
 
-;; General (чтобы удобно биндить Space клавиши)
 (use-package general
   :demand t
   :config
@@ -27,21 +24,18 @@
 
     "." 'find-file
     "," 'consult-buffer
-    ":" 'execute-extended-command ; M-x
+    ":" 'execute-extended-command 
 
-    ;; Файлы (f)
-    "f f" 'projectile-find-file
+        "f f" 'projectile-find-file
     "f r" 'consult-recent-file
     "f s" 'save-buffer
 
-    ;; Буферы (b)
-    "b b" 'switch-to-buffer ; или consult-buffer
+        "b b" 'switch-to-buffer 
     "b k" 'kill-current-buffer
     "b i" 'ibuffer
-    "b B" 'ibuffer ; для совместимости
+    "b B" 'ibuffer 
 
-    ;; Окна (w)
-    "w q" 'delete-window
+        "w q" 'delete-window
     "w v" 'split-window-right
     "w s" 'split-window-below
     "w h" 'evil-window-left
@@ -49,40 +43,38 @@
     "w k" 'evil-window-up
     "w l" 'evil-window-right
     "w c" 'delete-window
-    "w o" 'delete;; Управление размерами окон
+    "w o" 'delete
 
-    "w ." 'enlarge-window-horizontally  ; шире
-    "w ," 'shrink-window-horizontally   ; уже
-    "w +" 'enlarge-window               ; выше
-    "w -" 'shrink-window                ; ниже-other-windows
+    "w ." 'enlarge-window-horizontally  
+    "w ," 'shrink-window-horizontally   
+    "w +" 'enlarge-window               
+    "w -" 'shrink-window                
 
-    ;; Emacs (q)
-    "q q" 'evil-quit-all
+        "q q" 'evil-quit-all
     "q f" 'delete-frame
 
-    "f s" 'consult-ripgrep      ; Искать текст в проекте (нужен ripgrep в системе!)
-    "f g" 'consult-ripgrep      ; Искать текст в проекте (нужен ripgrep в системе!)
-    "s f" 'consult-find         ; Искать файлы (через find/fd)
+    "f s" 'consult-ripgrep      
+    "f g" 'consult-ripgrep      
+    "s f" 'consult-find         
     
-    ;; Проекты (Project)
-    "p p" 'projectile-switch-project
-    "p f" 'projectile-find-file ; Поиск файлов ВНУТРИ проекта (как Telescope git_files)
+        "p p" 'projectile-switch-project
+    "p f" 'projectile-find-file 
     "SPC" 'find-file
 
-    "t t" 'vterm ; Откроет vterm как обычный буфер (на весь экран, если одно окно)
+    "t t" 'vterm 
     "f p" (lambda () (interactive) (find-file "~/.config/emacs/init.el"))
 
-    "c a" 'lsp-execute-code-action  ; Code Action (меню с вариантами)
-    "c r" 'lsp-rename              ; Rename variable
+    "c a" 'lsp-execute-code-action  
+    "c r" 'lsp-rename              
     "g d" 'lsp-find-references
 
     "c c" 'compile
 
     "/"   'consult-line
 
-    "a c" 'calfw-org-open-calendar;; Open Calendar
+    "a c" 'calfw-org-open-calendar
     "a a" 'org-agenda
-    "a d" 'org-timestamp;;
+    "a d" 'org-timestamp
 
     "h b" 'describe-bindings
     "h k" 'describe-key
@@ -96,10 +88,9 @@
     )
   )
 (defun my-evil-syntax-fix ()
-  (modify-syntax-entry ?_ "w") ; _ теперь часть слова (как в Vim)
-  (modify-syntax-entry ?- "w")) ; - теперь пунктуация (разделитель)
+  (modify-syntax-entry ?_ "w") 
+  (modify-syntax-entry ?- "w")) 
 
-;; Применяем это к prog-mode (код) и text-mode
 (add-hook 'prog-mode-hook 'my-evil-syntax-fix)
 (add-hook 'text-mode-hook 'my-evil-syntax-fix)
 
@@ -114,17 +105,6 @@
     "l" 'dired-find-file))
 (add-hook 'dired-mode-hook #'my/dired-evil-bindings)
 
-
 (global-set-key [escape] 'keyboard-escape-quit)
-
-;; Или более жестко (через general):
-;;(general-def
-;;  :keymaps '(minibuffer-local-map
-;;             minibuffer-local-ns-map
-;;             minibuffer-local-completion-map
-;;             minibuffer-local-must-match-map
-;;             isearch-mode-map)
-;;  "<escape>" 'abort-recursive-edit) ; Закрыть меню/поиск
-;;(setq evil-collection-mode-list (remove 'dashboard evil-collection-mode-list))
 
 (provide 'setup-evil)

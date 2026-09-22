@@ -1,18 +1,14 @@
-;; ~/.config/emacs/init.el
 
-;; Убираем мусорные файлы в отдельную папку
 (setq backup-directory-alist `(("." . ,(expand-file-name "tmp/backups/" user-emacs-directory))))
 (setq auto-save-list-file-prefix (expand-file-name "tmp/auto-saves/sessions/" user-emacs-directory))
 (setq auto-save-file-name-transforms `((".*" ,(expand-file-name "tmp/auto-saves/" user-emacs-directory) t)))
 
-;; Отключаем lockfiles (файлы вида .#main.c, которые мешают npm/webpack/git)
 (setq create-lockfiles nil)
 
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
-;; 1. Установка Elpaca (Package Manager)
 (defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
@@ -50,27 +46,23 @@
 (add-hook 'after-init-hook #'elpaca-process-queues)
 (elpaca `(,@elpaca-order))
 
-;; 2. Поддержка use-package (чтобы писать конфиг как в Doom/Lazy)
 (elpaca elpaca-use-package
   (elpaca-use-package-mode)
   (setq elpaca-use-package-by-default t))
 
-;; 3. Базовые настройки (табы, номера строк)
 (setq-default
  tab-width 4
- indent-tabs-mode nil ;; Использовать пробелы
- display-line-numbers-type 'relative) ;; Относительные номера строк
+ indent-tabs-mode nil 
+ display-line-numbers-type 'relative) 
 
 (global-display-line-numbers-mode t)
 (column-number-mode)
 
-;; Добавляем папку lisp в путь, чтобы Emacs видел твои модули
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
 (setq-default truncate-lines t)
 
-(setq ring-bell-function 'ignore) ; Выключить звук полностью
-;; 4. ЗАГРУЗКА МОДУЛЕЙ (Сюда будем добавлять файлы)
+(setq ring-bell-function 'ignore) 
 (require 'custom)
 (require 'setup-evil)
 (require 'setup-ui)

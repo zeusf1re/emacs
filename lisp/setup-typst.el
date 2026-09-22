@@ -1,4 +1,3 @@
-;;; setup-typst.el --- Typst: LSP + live preview -*- lexical-binding: t; -*-
 
 (use-package typst-mode
   :ensure (:type git :host github :repo "Ziqi-Yang/typst-mode.el")
@@ -7,14 +6,11 @@
   :config
   (setq typst-executable-location "typst"))
 
-;;; Tinymist LSP (диагностика, переходы, автодополнение)
 (defun my/typst--setup ()
   "Local setup for `typst-mode'."
-  ;; LSP (tinymist)
-  (when (executable-find "tinymist")
+    (when (executable-find "tinymist")
     (lsp-deferred))
-  ;; Live preview: обновлять открытый PDF при изменении файла
-  (add-hook 'after-save-hook #'my/typst--refresh-preview nil t)
+    (add-hook 'after-save-hook #'my/typst--refresh-preview nil t)
   (my/typst--bind-keys))
 
 (with-eval-after-load 'lsp-mode
@@ -26,7 +22,6 @@
     :server-id 'tinymist
     :download-server-fn (lambda (_client _cb) nil))))
 
-;;; Live preview: typst watch → PDF в соседнем окне (pdf-tools)
 (defvar my/typst--watch-process nil)
 (defvar my/typst--preview-buffer nil)
 (defvar my/typst--notify-desc nil)
@@ -84,16 +79,14 @@
   (let* ((pdf (my/typst--pdf-file))
          (buf nil)
          (attempts 0))
-    ;; typst watch может ещё писать первый раз — подождём файл
-    (while (and (not (file-exists-p pdf)) (< attempts 20))
+        (while (and (not (file-exists-p pdf)) (< attempts 20))
       (sit-for 0.1)
       (setq attempts (1+ attempts)))
     (unless (file-exists-p pdf)
       (user-error "PDF не появился: %s" pdf))
     (setq buf (find-file-noselect pdf))
     (setq my/typst--preview-buffer buf)
-    ;; Окно: справа (side), не воруем фокус у исходника
-    (if (> (window-total-width) 140)
+        (if (> (window-total-width) 140)
         (display-buffer-in-side-window
          buf
          '((side . right)
@@ -109,13 +102,11 @@
       (display-line-numbers-mode -1)
       (setq-local mode-line-format
                   (list " " mode-line-buffer-identification "  [typst preview] ")))
-    ;; file-notify: мгновенное обновление при перезаписи typst watch
-    (my/typst--stop-notify)
+        (my/typst--stop-notify)
     (setq my/typst--notify-desc
           (ignore-errors
             (file-notify-add-watch pdf t #'my/typst--refresh-pdf)))
-    ;; Фолбэк-таймер, если file-notify недоступен (macOS kqueue и т.п.)
-    (unless my/typst--notify-desc
+        (unless my/typst--notify-desc
       (setq my/typst--fallback-timer
             (run-with-timer 0.5 0.5
                             (lambda ()
@@ -188,4 +179,3 @@
       "m r" #'my/typst--refresh-pdf)))
 
 (provide 'setup-typst)
-;;; setup-typst.el ends here
