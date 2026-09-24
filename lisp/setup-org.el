@@ -83,39 +83,23 @@
   (setq org-modern-star '("◉" "○" "◈" "◇" "✳" "◆" "□"))
   (setq org-modern-table nil)) 
 
-(with-eval-after-load 'evil
-  (with-eval-after-load 'org
-        (evil-define-key 'normal org-mode-map (kbd "RET") 'org-open-at-point)
-    (evil-define-key 'insert org-mode-map (kbd "RET") 'org-return)))
-
 (defun my/org-latex-preview-all ()
   "Обновить все формулы в буфере"
   (interactive)
   (org-latex-preview '(16)))
-(with-eval-after-load 'evil
-  (with-eval-after-load 'org
-        (define-key evil-normal-state-map (kbd "RET") 'my/org-ret-dwim)))
 
-(defun my/org-ret-dwim ()
-  "Smart RET: follows links, toggles checkboxes, or folds headings."
-  (interactive)
-  (let ((element (org-element-context)))
-    (cond
-     ((org-at-item-checkbox-p) (org-toggle-checkbox))
-     ((eq 'link (org-element-type element)) (org-open-at-point-global))
-     ((org-at-heading-p) (org-cycle))
-     (t (evil-next-line)))))
 (defun my/org-ret-dwim ()
   "Smart RET: follows links, toggles checkboxes, or folds headings."
   (interactive)
   (let ((element (org-element-context)))
     (cond
      ((eq major-mode 'sqlite-mode)
-          (call-interactively 'sqlite-mode-list-data))
+      (call-interactively 'sqlite-mode-list-data))
      ((org-at-item-checkbox-p) (org-toggle-checkbox))
      ((eq 'link (org-element-type element)) (org-open-at-point-global))
      ((org-at-heading-p) (org-cycle))
      (t (evil-next-line)))))
+
 (with-eval-after-load 'evil
   (with-eval-after-load 'org
     (evil-define-key 'normal org-mode-map (kbd "RET") 'my/org-ret-dwim)
@@ -189,8 +173,6 @@
   (add-hook 'org-tree-slide-stop-hook
             (lambda ()
               (setq-local face-remapping-alist '())
-              (display-line-numbers-mode 1)
-                            ))
-  )
+              (display-line-numbers-mode 1))))
 
 (provide 'setup-org)

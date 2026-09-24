@@ -20,22 +20,20 @@
     :keymaps 'override)
   
   (my-leader-def
-    "b k" 'kill-current-buffer
-
     "." 'find-file
     "," 'consult-buffer
-    ":" 'execute-extended-command 
+    ":" 'execute-extended-command
 
-        "f f" 'projectile-find-file
+    "f f" 'projectile-find-file
     "f r" 'consult-recent-file
     "f s" 'save-buffer
 
-        "b b" 'switch-to-buffer 
+    "b b" 'switch-to-buffer
     "b k" 'kill-current-buffer
     "b i" 'ibuffer
-    "b B" 'ibuffer 
+    "b B" 'ibuffer
 
-        "w q" 'delete-window
+    "w q" 'delete-window
     "w v" 'split-window-right
     "w s" 'split-window-below
     "w h" 'evil-window-left
@@ -45,27 +43,26 @@
     "w c" 'delete-window
     "w o" 'delete
 
-    "w ." 'enlarge-window-horizontally  
-    "w ," 'shrink-window-horizontally   
-    "w +" 'enlarge-window               
-    "w -" 'shrink-window                
+    "w ." 'enlarge-window-horizontally
+    "w ," 'shrink-window-horizontally
+    "w +" 'enlarge-window
+    "w -" 'shrink-window
 
-        "q q" 'evil-quit-all
+    "q q" 'evil-quit-all
     "q f" 'delete-frame
 
-    "f s" 'consult-ripgrep      
-    "f g" 'consult-ripgrep      
-    "s f" 'consult-find         
-    
-        "p p" 'projectile-switch-project
-    "p f" 'projectile-find-file 
+    "f g" 'consult-ripgrep
+    "s f" 'consult-find
+
+    "p p" 'projectile-switch-project
+    "p f" 'projectile-find-file
     "SPC" 'find-file
 
-    "t t" 'vterm 
+    "t t" 'vterm
     "f p" (lambda () (interactive) (find-file "~/.config/emacs/init.el"))
 
-    "c a" 'lsp-execute-code-action  
-    "c r" 'lsp-rename              
+    "c a" 'lsp-execute-code-action
+    "c r" 'lsp-rename
     "g d" 'lsp-find-references
 
     "c c" 'compile
@@ -83,21 +80,14 @@
     "o l" 'org-latex-preview
     "o L" 'my/org-latex-preview-all
 
-    "d"   'dired
-   
-    )
-  )
+    "d"   'dired))
 (defun my-evil-syntax-fix ()
-  (modify-syntax-entry ?_ "w") 
-  (modify-syntax-entry ?- "w")) 
+  (modify-syntax-entry ?_ "w")
+  (modify-syntax-entry ?- "w"))
 
 (add-hook 'prog-mode-hook 'my-evil-syntax-fix)
 (add-hook 'text-mode-hook 'my-evil-syntax-fix)
 
-(with-eval-after-load 'dired
-  (evil-collection-define-key 'normal 'dired-mode-map
-    "h" 'dired-up-directory
-    "l" 'dired-find-file))
 (defun my/dired-evil-bindings ()
   (evil-define-key 'normal dired-mode-map
     "h" 'dired-up-directory

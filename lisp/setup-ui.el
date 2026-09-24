@@ -2,9 +2,9 @@
 
 (setq ns-use-native-fullscreen t)
 (defun my/frame-maximize (frame)
-  "Максимизировать FRAME при создании (нужно для emacsclient)."
+  "Полный fullscreen FRAME при создании."
   (when (display-graphic-p frame)
-    (set-frame-parameter frame 'fullscreen 'maximized)))
+    (set-frame-parameter frame 'fullscreen 'fullscreen)))
 (add-hook 'after-make-frame-functions #'my/frame-maximize)
 (my/frame-maximize (selected-frame))
 
@@ -31,13 +31,10 @@
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package transient
-  :ensure t
-  :config
-    )
-(setq scroll-margin 2              
-      scroll-conservatively 101    
-      scroll-preserve-screen-position t) 
-(setq ns-use-native-fullscreen t)
+  :ensure t)
+(setq scroll-margin 2
+      scroll-conservatively 101
+      scroll-preserve-screen-position t)
 
 (add-to-list 'default-frame-alist '(fullscreen . fullscreen))
 (provide 'setup-ui)
