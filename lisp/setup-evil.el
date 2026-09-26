@@ -59,6 +59,7 @@
 
     "c a" 'lsp-execute-code-action
     "c r" 'lsp-rename
+    "c e" 'lsp-ui-doc-hover
     "g d" 'lsp-find-references
 
     "c c" 'compile
