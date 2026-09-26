@@ -1,4 +1,3 @@
-
 (use-package typst-mode
   :ensure (:type git :host github :repo "Ziqi-Yang/typst-mode.el")
   :mode "\\.typ\\'"
@@ -6,11 +5,18 @@
   :config
   (setq typst-executable-location "typst"))
 
+;; Гарантируем, что .pdf всегда открывается в pdf-view-mode ещё на этапе
+;; find-file-noselect, а не через doc-view-mode с последующим переключением.
+(require 'pdf-view)
+(add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode))
+
 (defun my/typst--setup ()
   "Local setup for `typst-mode'."
-    (when (executable-find "tinymist")
+  (when (executable-find "tinymist")
     (lsp-deferred))
-    (add-hook 'after-save-hook #'my/typst--refresh-preview nil t)
+  ;; Резервный режим, когда watch не запущен. Если watch жив — сами
+  ;; ничего не компилируем, чтобы не было гонки.
+  (add-hook 'after-save-hook #'my/typst--on-save nil t)
   (my/typst--bind-keys))
 
 (with-eval-after-load 'lsp-mode
@@ -24,69 +30,72 @@
 
 (defvar my/typst--watch-process nil)
 (defvar my/typst--preview-buffer nil)
-(defvar my/typst--notify-desc nil)
-(defvar my/typst--fallback-timer nil)
+(defvar my/typst--refresh-timer nil)
 
 (defun my/typst--pdf-file ()
-  "Path to PDF for current buffer."
   (concat (file-name-sans-extension (buffer-file-name)) ".pdf"))
 
+(defun my/typst--watch-alive-p ()
+  (and my/typst--watch-process (process-live-p my/typst--watch-process)))
+
 (defun my/typst--stop-watch ()
-  "Stop running typst watch process."
-  (when (and my/typst--watch-process
-             (process-live-p my/typst--watch-process))
+  (when (my/typst--watch-alive-p)
     (delete-process my/typst--watch-process))
   (setq my/typst--watch-process nil))
 
-(defun my/typst--stop-notify ()
-  "Remove file-notify watch and fallback timer on preview PDF."
-  (when my/typst--notify-desc
-    (ignore-errors (file-notify-rm-watch my/typst--notify-desc))
-    (setq my/typst--notify-desc nil))
-  (when my/typst--fallback-timer
-    (cancel-timer my/typst--fallback-timer)
-    (setq my/typst--fallback-timer nil)))
-
 (defun my/typst--pdf-buffer ()
-  "Return live PDF buffer for current file, if any."
   (when (buffer-live-p my/typst--preview-buffer)
     my/typst--preview-buffer))
 
 (defun my/typst--refresh-pdf (&rest _)
-  "Revert preview PDF buffer in place."
+  "Revert preview PDF buffer in place, безопасно к гонкам."
   (let ((buf (my/typst--pdf-buffer)))
     (when buf
       (with-current-buffer buf
-        (when (derived-mode-p 'pdf-view-mode)
-          (pdf-view-revert-buffer nil t))))))
+        (when (and (derived-mode-p 'pdf-view-mode)
+                   (file-exists-p (buffer-file-name)))
+          (condition-case err
+              (pdf-view-revert-buffer nil t)
+            (error (message "PDF refresh failed: %s" err))))))))
 
-(defun my/typst--refresh-preview ()
-  "Refresh open preview after save (no watch)."
-  (when (my/typst--pdf-buffer)
-    (my/typst--compile-async)
-    (run-at-time 0.4 nil #'my/typst--refresh-pdf)))
+(defun my/typst--schedule-refresh ()
+  "Debounce-перерисовка PDF: watch печатает несколько строк подряд."
+  (when my/typst--refresh-timer
+    (cancel-timer my/typst--refresh-timer))
+  (setq my/typst--refresh-timer
+        (run-at-time 0.2 nil #'my/typst--refresh-pdf)))
 
 (defun my/typst--compile-async ()
-  "Compile current file to PDF in background."
+  "Compile current file to PDF in background (fallback без watch)."
   (when (buffer-file-name)
     (start-process
      "typst-compile" "*typst-compile*"
      typst-executable-location "compile"
      (buffer-file-name) (my/typst--pdf-file))))
 
+(defun my/typst--on-save ()
+  "Вызывается при сохранении .typ."
+  (when (my/typst--pdf-buffer)
+    (if (my/typst--watch-alive-p)
+        ;; watch сам перекомпилирует и напечатает в stdout —
+        ;; наш process-filter вызовет refresh. Ничего не делаем.
+        nil
+      (my/typst--compile-async)
+      (run-at-time 0.4 nil #'my/typst--refresh-pdf))))
+
 (defun my/typst--open-pdf-window ()
-  "Open PDF next to source, remember buffer, arm auto-refresh."
+  "Open PDF next to source, remember buffer."
   (let* ((pdf (my/typst--pdf-file))
          (buf nil)
          (attempts 0))
-        (while (and (not (file-exists-p pdf)) (< attempts 20))
+    (while (and (not (file-exists-p pdf)) (< attempts 20))
       (sit-for 0.1)
       (setq attempts (1+ attempts)))
     (unless (file-exists-p pdf)
       (user-error "PDF не появился: %s" pdf))
     (setq buf (find-file-noselect pdf))
     (setq my/typst--preview-buffer buf)
-        (if (> (window-total-width) 140)
+    (if (> (window-total-width) 140)
         (display-buffer-in-side-window
          buf
          '((side . right)
@@ -102,16 +111,6 @@
       (display-line-numbers-mode -1)
       (setq-local mode-line-format
                   (list " " mode-line-buffer-identification "  [typst preview] ")))
-        (my/typst--stop-notify)
-    (setq my/typst--notify-desc
-          (ignore-errors
-            (file-notify-add-watch pdf t #'my/typst--refresh-pdf)))
-        (unless my/typst--notify-desc
-      (setq my/typst--fallback-timer
-            (run-with-timer 0.5 0.5
-                            (lambda ()
-                              (when (buffer-live-p my/typst--preview-buffer)
-                                (my/typst--refresh-pdf))))))
     buf))
 
 (defun my/typst-live-preview ()
@@ -127,15 +126,18 @@
          (output (concat (file-name-sans-extension input) ".pdf"))
          (default-directory (file-name-directory (buffer-file-name))))
     (setq my/typst--watch-process
-          (start-process
-           "typst-watch" "*typst-watch*"
-           typst-executable-location
-           "watch" input output))
-    (set-process-sentinel
-     my/typst--watch-process
-     (lambda (p _e)
-       (unless (process-live-p p)
-         (message "typst watch остановлен"))))
+          (make-process
+           :name "typst-watch"
+           :buffer "*typst-watch*"
+           :command (list typst-executable-location "watch" input output)
+           ;; Ключевой момент: watch печатает в stdout каждый раз,
+           ;; когда перекомпилирует. Ловим это и перечитываем PDF.
+           :filter (lambda (_proc _output)
+                     (my/typst--schedule-refresh))
+           :sentinel
+           (lambda (p _e)
+             (unless (process-live-p p)
+               (message "typst watch остановлен")))))
     (message "typst watch запущен"))
   (my/typst--open-pdf-window))
 
@@ -143,7 +145,9 @@
   "Stop watch and close preview PDF."
   (interactive)
   (my/typst--stop-watch)
-  (my/typst--stop-notify)
+  (when my/typst--refresh-timer
+    (cancel-timer my/typst--refresh-timer)
+    (setq my/typst--refresh-timer nil))
   (let ((buf (my/typst--pdf-buffer)))
     (when buf
       (setq my/typst--preview-buffer nil)

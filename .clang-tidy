@@ -1,0 +1,32 @@
+---
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  cert-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*,
+
+  # Шумно для C — отключаем:
+  -bugprone-easily-swappable-parameters,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-convert-member-functions-to-static,
+  -readability-avoid-const-params-in-decls,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion
+
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*'
+FormatStyle: 'file'
+CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: 0
+  - key: readability-isolate-declaration.IncludeMacros
+    value: false
+  - key: cert-err33-c.CheckedFunctions
+    value: '::malloc;::calloc;::realloc;::free;::fopen;::fclose;::fread;::fwrite;::fprintf;::snprintf'
+...

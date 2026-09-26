@@ -25,8 +25,6 @@
     ":" 'execute-extended-command
 
     "f f" 'projectile-find-file
-    "f r" 'consult-recent-file
-    "f s" 'save-buffer
 
     "b b" 'switch-to-buffer
     "b k" 'kill-current-buffer
@@ -49,14 +47,12 @@
     "w -" 'shrink-window
 
     "q q" 'evil-quit-all
-    "q f" 'delete-frame
 
     "f g" 'consult-ripgrep
-    "s f" 'consult-find
+    "f s" 'consult-find
 
     "p p" 'projectile-switch-project
     "p f" 'projectile-find-file
-    "SPC" 'find-file
 
     "t t" 'vterm
     "f p" (lambda () (interactive) (find-file "~/.config/emacs/init.el"))

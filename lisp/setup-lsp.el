@@ -1,4 +1,3 @@
-
 (use-package lsp-mode
   :init
   (setq lsp-keymap-prefix "C-c l") 

@@ -1,0 +1,114 @@
+---
+# Based on Google style, адаптировано под C.
+# clang-format не имеет отдельного "C" — C-файлы идут через Cpp-парсер.
+Language: Cpp
+BasedOnStyle: Google
+
+IndentWidth: 4
+TabWidth: 8
+UseTab: Never
+ColumnLimit: 150
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+
+# Скобки
+BreakBeforeBraces: Attach
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+
+# Короткие блоки
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Выравнивание
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+AlignEscapedNewlines: Left
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakStringLiterals: true
+BreakArrays: true
+AlwaysBreakBeforeMultilineStrings: true
+
+# Пробелы и звёздочки
+PointerAlignment: Left
+ReferenceAlignment: Left
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeInheritanceColon: true
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyBlock: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: Never
+SpacesInContainerLiterals: true
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: -1
+SpacesInParens: Never
+SpacesInParensOptions:
+  InConditionalStatements: false
+  InCStyleCasts: false
+  InEmptyParentheses: false
+  Other: false
+SpacesInSquareBrackets: false
+SpaceAroundPointerQualifiers: Default
+
+# Include-порядок (актуально и для C)
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<.*\.h>'      # системные C-хедеры
+    Priority: 1
+  - Regex: '^<.*'          # прочие системные
+    Priority: 2
+  - Regex: '.*'            # локальные
+    Priority: 3
+IncludeIsMainRegex: '([-_](test|unittest))?$'
+SortIncludes: CaseSensitive
+IncludeIsMainSourceRegex: ''
+
+# Разное
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+InsertNewlineAtEOF: true
+KeepEmptyLinesAtEOF: false
+LineEnding: DeriveLF
+ReflowComments: true
+RemoveParentheses: Leave
+RemoveSemicolon: false
+SeparateDefinitionBlocks: Leave
+IndentCaseLabels: true
+IndentCaseBlocks: false
+IndentGotoLabels: true
+IndentPPDirectives: None
+IndentWrappedFunctionNames: false
+IndentAccessModifiers: false
+IndentExternBlock: AfterExternBlock
+NamespaceIndentation: None
+InsertBraces: false
+FixNamespaceComments: false
+SortUsingDeclarations: LexicographicNumeric
+Standard: c17
+...
