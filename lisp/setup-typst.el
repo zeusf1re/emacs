@@ -7,8 +7,9 @@
 
 ;; Гарантируем, что .pdf всегда открывается в pdf-view-mode ещё на этапе
 ;; find-file-noselect, а не через doc-view-mode с последующим переключением.
-(require 'pdf-view)
-(add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode))
+(with-eval-after-load 'pdf-tools
+  (require 'pdf-view)
+  (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode)))
 
 (defun my/typst--setup ()
   "Local setup for `typst-mode'."

@@ -1,11 +1,12 @@
 (use-package pdf-tools
   :ensure t
+  :defer t
   :config
-    (pdf-tools-install)
-  
-    (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
-  
-    (use-package pdf-view-restore
+  (when (executable-find "pdfinfo")
+    (pdf-tools-install))
+  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
+
+  (use-package pdf-view-restore
     :ensure t
     :hook (pdf-view-mode . pdf-view-restore-mode)))
 

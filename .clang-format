@@ -110,5 +110,3 @@ NamespaceIndentation: None
 InsertBraces: false
 FixNamespaceComments: false
 SortUsingDeclarations: LexicographicNumeric
-Standard: c17
-...

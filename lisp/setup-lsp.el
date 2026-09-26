@@ -8,6 +8,7 @@
   :config
   (setq lsp-inlay-hint-enable t
         lsp-semantic-tokens-enable t
+        lsp-enable-snippet nil
         lsp-clients-clangd-args '("--background-index"
                                   "--clang-tidy"
                                   "--completion-style=detailed"
@@ -32,6 +33,19 @@
         lsp-ui-doc-enable t
         lsp-ui-doc-header t
         lsp-ui-doc-include-signature t))
+
+(use-package company
+  :ensure t
+  :hook (after-init . global-company-mode)
+  :config
+  (setq company-minimum-prefix-length 2
+        company-idle-delay 0.1
+        company-show-numbers t))
+
+(use-package yasnippet
+  :ensure t
+  :config
+  (yas-global-mode 1))
 
 (use-package flycheck
   :init (global-flycheck-mode))
