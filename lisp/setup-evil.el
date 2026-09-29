@@ -24,7 +24,6 @@
     "," 'consult-buffer
     ":" 'execute-extended-command
 
-    "f f" 'projectile-find-file
 
     "b b" 'switch-to-buffer
     "b k" 'kill-current-buffer
@@ -48,8 +47,8 @@
 
     "q q" 'evil-quit-all
 
-    "f g" 'consult-ripgrep
-    "f s" 'consult-find
+    "f g" 'consult-find
+    "f s" 'consult-ripgrep
 
     "p p" 'projectile-switch-project
     "p f" 'projectile-find-file
@@ -69,6 +68,10 @@
     "a c" 'calfw-org-open-calendar
     "a a" 'org-agenda
     "a d" 'org-timestamp
+    "a i" 'org-clock-in
+    "a o" 'org-clock-out
+    "a l" 'org-clock-in-last
+
 
     "h b" 'describe-bindings
     "h k" 'describe-key
@@ -85,12 +88,12 @@
 (add-hook 'prog-mode-hook 'my-evil-syntax-fix)
 (add-hook 'text-mode-hook 'my-evil-syntax-fix)
 
-(defun my/dired-evil-bindings ()
-  (evil-define-key 'normal dired-mode-map
-    "h" 'dired-up-directory
-    "a" 'dired-create-empty-file
-    "l" 'dired-find-file))
-(add-hook 'dired-mode-hook #'my/dired-evil-bindings)
+;;(defun my/dired-evil-bindings ()
+;;  (evil-define-key 'normal dired-mode-map
+;;    "h" 'dired-up-directory
+;;    "a" 'dired-create-empty-file
+;;    "l" 'dired-find-file))
+;;(add-hook 'dired-mode-hook #'my/dired-evil-bindings)
 
 (global-set-key [escape] 'keyboard-escape-quit)
 

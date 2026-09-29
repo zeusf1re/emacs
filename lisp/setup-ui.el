@@ -1,6 +1,7 @@
 
 
 (setq ns-use-native-fullscreen t)
+
 (defun my/frame-maximize (frame)
   "Полный fullscreen FRAME при создании."
   (when (display-graphic-p frame)
