@@ -33,9 +33,53 @@
 
 (use-package transient
   :ensure t)
+
+
+
+
 (setq scroll-margin 2
       scroll-conservatively 101
       scroll-preserve-screen-position t)
 
-(add-to-list 'default-frame-alist '(fullscreen . fullscreen))
+
+
+(setq scroll-margin 2
+      scroll-conservatively 101
+      scroll-preserve-screen-position t)
+
+(defvar my/popup-whitelist
+  '("\\*Help\\*" "\\*Calculator\\*" "\\*Calc\\*" "\\*Calc Trail\\*"
+    "\\*Completions\\*" "\\*compilation\\*" "\\*Occur\\*" "\\*grep\\*"
+    "\\*vc-.*\\*" "\\*Messages\\*" "\\*Warnings\\*"
+    "\\*Shell Command Output\\*")
+  "Buffers matching these regexps may open in another window / split.")
+
+(defun my/display-buffer-no-split (orig buffer-or-name &optional action frame)
+  "Force display-buffer to reuse current window unless whitelisted."
+  (let* ((name (if (bufferp buffer-or-name)
+                   (buffer-name buffer-or-name)
+                 (format "%s" buffer-or-name)))
+         (whitelisted (seq-some (lambda (re) (string-match-p re name))
+                                my/popup-whitelist)))
+    (funcall orig buffer-or-name
+             (if whitelisted
+                 action
+               '(display-buffer-reuse-window display-buffer-same-window))
+             frame)))
+
+(advice-add 'display-buffer :around #'my/display-buffer-no-split)
+;; ---- popup policy ----
+(defun my/no-auto-split (&rest _) nil)
+(advice-add 'split-window-sensibly :override #'my/no-auto-split)
+(advice-add 'display-buffer :around #'my/display-buffer-no-split)
+(setq kill-buffer-query-functions nil)
+(setq kill-buffer-delete-auto-save-files nil)
+
+
+(setq confirm-kill-emacs nil          ; don't ask "really quit?"
+      kill-buffer-quit-windows nil
+      confirm-nonexistent-file-or-buffer nil
+      org-confirm-babel-evaluate nil  ; don't ask before running src blocks
+      use-short-answers t)            ; y/n instead of yes/no
+
 (provide 'setup-ui)

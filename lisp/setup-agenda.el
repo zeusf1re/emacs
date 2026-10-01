@@ -3,6 +3,7 @@
 (setq org-agenda-start-on-weekday nil)  
 (setq org-agenda-start-day "+0d")       
 (setq org-agenda-span 7)                
+(setq org-deadline-warning-days 0)
 
 (use-package evil-org
   :ensure t

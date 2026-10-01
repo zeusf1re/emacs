@@ -1,3 +1,4 @@
+;; ====================== SETUP-PDF.el ====================== 
 (use-package pdf-tools
   :ensure t
   :defer t
