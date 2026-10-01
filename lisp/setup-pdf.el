@@ -9,5 +9,6 @@
 (use-package pdf-view-restore
   :ensure t
   :hook (pdf-view-mode . pdf-view-restore-mode))
+(setq pdf-view-continuous nil)
 
 (provide 'setup-pdf)

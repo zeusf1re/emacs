@@ -1,3 +1,5 @@
+;;; setup-typst.el --- Typst mode + live preview -*- lexical-binding: t; -*-
+
 (use-package typst-mode
   :ensure (:type git :host github :repo "Ziqi-Yang/typst-mode.el")
   :mode "\\.typ\\'"
@@ -5,8 +7,7 @@
   :config
   (setq typst-executable-location "typst"))
 
-;; Гарантируем, что .pdf всегда открывается в pdf-view-mode ещё на этапе
-;; find-file-noselect, а не через doc-view-mode с последующим переключением.
+;; .pdf всегда открывается в pdf-view-mode (pdf-tools), не в doc-view.
 (with-eval-after-load 'pdf-tools
   (require 'pdf-view)
   (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode)))
@@ -15,17 +16,23 @@
   "Local setup for `typst-mode'."
   (when (executable-find "tinymist")
     (lsp-deferred))
-  ;; Резервный режим, когда watch не запущен. Если watch жив — сами
-  ;; ничего не компилируем, чтобы не было гонки.
   (add-hook 'after-save-hook #'my/typst--on-save nil t)
   (my/typst--bind-keys))
 
 (with-eval-after-load 'lsp-mode
-  (add-to-list 'lsp-language-id-configuration '(typst-mode . "typst"))
+  ;; Регистрируем language-id для всех субмодов typst
+  (dolist (mode '(typst-mode
+                  typst--markup-mode
+                  typst--code-mode
+                  typst--math-mode))
+    (add-to-list 'lsp-language-id-configuration `(,mode . "typst")))
+
   (lsp-register-client
    (make-lsp-client
     :new-connection (lsp-stdio-connection (lambda () (list "tinymist")))
-    :major-modes '(typst-mode)
+    ;; activation-fn ловит любой mode, чьё имя начинается с "typst"
+    :activation-fn (lambda (&rest _)
+                     (string-prefix-p "typst" (symbol-name major-mode)))
     :server-id 'tinymist
     :download-server-fn (lambda (_client _cb) nil))))
 
@@ -66,32 +73,37 @@
   (setq my/typst--refresh-timer
         (run-at-time 0.2 nil #'my/typst--refresh-pdf)))
 
+(defun my/typst--compile-sync ()
+  "Синхронная компиляция в PDF. Возвращает t при успехе."
+  (zerop (call-process typst-executable-location
+                       nil "*typst-compile*" nil
+                       "compile"
+                       (buffer-file-name)
+                       (my/typst--pdf-file))))
+
 (defun my/typst--compile-async ()
   "Compile current file to PDF in background (fallback без watch)."
   (when (buffer-file-name)
-    (start-process
-     "typst-compile" "*typst-compile*"
-     typst-executable-location "compile"
-     (buffer-file-name) (my/typst--pdf-file))))
+    (let ((proc (start-process
+                 "typst-compile" "*typst-compile*"
+                 typst-executable-location "compile"
+                 (buffer-file-name) (my/typst--pdf-file))))
+      (set-process-sentinel
+       proc
+       (lambda (_p _e) (my/typst--refresh-pdf))))))
 
 (defun my/typst--on-save ()
   "Вызывается при сохранении .typ."
   (when (my/typst--pdf-buffer)
     (if (my/typst--watch-alive-p)
-        ;; watch сам перекомпилирует и напечатает в stdout —
-        ;; наш process-filter вызовет refresh. Ничего не делаем.
+        ;; watch сам перекомпилирует → process-filter вызовет refresh.
         nil
-      (my/typst--compile-async)
-      (run-at-time 0.4 nil #'my/typst--refresh-pdf))))
+      (my/typst--compile-async))))
 
 (defun my/typst--open-pdf-window ()
   "Open PDF next to source, remember buffer."
   (let* ((pdf (my/typst--pdf-file))
-         (buf nil)
-         (attempts 0))
-    (while (and (not (file-exists-p pdf)) (< attempts 20))
-      (sit-for 0.1)
-      (setq attempts (1+ attempts)))
+         (buf nil))
     (unless (file-exists-p pdf)
       (user-error "PDF не появился: %s" pdf))
     (setq buf (find-file-noselect pdf))
@@ -122,6 +134,11 @@
   (unless (executable-find typst-executable-location)
     (user-error "typst не найден в PATH"))
   (save-buffer)
+
+  ;; Первая компиляция — синхронно, чтобы PDF был валиден к моменту открытия.
+  (unless (my/typst--compile-sync)
+    (user-error "typst compile упал, смотри *typst-compile*"))
+
   (my/typst--stop-watch)
   (let* ((input (file-name-nondirectory (buffer-file-name)))
          (output (concat (file-name-sans-extension input) ".pdf"))
@@ -131,8 +148,7 @@
            :name "typst-watch"
            :buffer "*typst-watch*"
            :command (list typst-executable-location "watch" input output)
-           ;; Ключевой момент: watch печатает в stdout каждый раз,
-           ;; когда перекомпилирует. Ловим это и перечитываем PDF.
+           ;; watch печатает в stdout после каждой перекомпиляции.
            :filter (lambda (_proc _output)
                      (my/typst--schedule-refresh))
            :sentinel
@@ -158,13 +174,14 @@
   (message "Typst preview остановлен"))
 
 (defun my/typst-compile ()
-  "Compile current file to PDF once."
+  "Compile current file to PDF once (synchronously)."
   (interactive)
   (unless (buffer-file-name)
     (user-error "Буфер не сохранён в файл"))
   (save-buffer)
-  (compile compile-command)
-  (message "Компиляция запущена…"))
+  (if (my/typst--compile-sync)
+      (message "Скомпилировано: %s" (my/typst--pdf-file))
+    (message "Ошибка компиляции — смотри *typst-compile*")))
 
 (defun my/typst--bind-keys ()
   "Evil/C-c bindings for typst buffers."
