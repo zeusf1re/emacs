@@ -1,3 +1,4 @@
+;; ==========setup-lsp.el==============
 (use-package lsp-mode
   :init
   (setq lsp-keymap-prefix "C-c l") 
@@ -34,13 +35,6 @@
         lsp-ui-doc-header t
         lsp-ui-doc-include-signature t))
 
-(use-package company
-  :ensure t
-  :hook (after-init . global-company-mode)
-  :config
-  (setq company-minimum-prefix-length 2
-        company-idle-delay 0.1
-        company-show-numbers t))
 
 (use-package yasnippet
   :ensure t

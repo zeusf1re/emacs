@@ -82,4 +82,20 @@
       org-confirm-babel-evaluate nil  ; don't ask before running src blocks
       use-short-answers t)            ; y/n instead of yes/no
 
+
+
+
+
+;; "K"
+(add-to-list 'display-buffer-alist
+             '("\\*lsp-help\\*"
+               (display-buffer-in-side-window)
+               (side . right)
+               (slot . -1)              ; -1 = верхний слот среди right-side окон
+               (window-width . 0.35)))
+(advice-add 'lsp-describe-thing-at-point :after
+            (lambda (&rest _)
+              (when-let ((win (get-buffer-window "*lsp-help*")))
+                (select-window win))))
 (provide 'setup-ui)
+
