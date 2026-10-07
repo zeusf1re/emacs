@@ -45,7 +45,8 @@
 (elpaca elpaca-use-package
   (elpaca-use-package-mode)
   (setq elpaca-use-package-by-default t))
-
+(use-package compat
+  :ensure (:source "gnu-devel" :package "compat"))
 (setq-default
  tab-width 4
  indent-tabs-mode nil 

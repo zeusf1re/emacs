@@ -78,5 +78,6 @@
   (add-to-list 'consult-buffer-filter "^\\*Async")
   (add-to-list 'consult-buffer-filter "^\\*elpaca")
   (add-to-list 'consult-buffer-filter "^\\*xref"))
-
+(use-package cape
+  :ensure t)
 (provide 'setup-completion)

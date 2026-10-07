@@ -67,4 +67,6 @@
                                (add-hook 'before-save-hook 'clang-format-buffer nil t))))
 
 (setq lsp-restart 'auto-restart)
+(with-eval-after-load 'lsp-completion
+  (advice-add 'lsp-completion-at-point :around #'cape-wrap-buster))
 (provide 'setup-lsp)
