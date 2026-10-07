@@ -9,7 +9,7 @@
   :config
   (setq lsp-inlay-hint-enable t
         lsp-semantic-tokens-enable t
-        lsp-enable-snippet nil
+        lsp-enable-snippet t
         lsp-clients-clangd-args '("--background-index"
                                   "--clang-tidy"
                                   "--completion-style=detailed"
