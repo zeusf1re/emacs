@@ -27,4 +27,5 @@
       (message "Добавлено %d треков в * Tracks." (length tracks)))))
 (global-auto-revert-mode 1)
 (setq auto-revert-verbose nil)   ; silence "Reverting buffer ..." messages
+
 (provide 'custom)

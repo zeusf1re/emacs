@@ -26,7 +26,15 @@
     (kbd "g d") 'lsp-find-definition
     (kbd "g r") 'lsp-find-references
     (kbd "K")   'lsp-describe-thing-at-point))
+(with-eval-after-load 'lsp-mode
+  (setq lsp-disabled-clients '(semgrep-ls pyls ty-ls ruff pylsp))
 
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("basedpyright-langserver" "--stdio"))
+    :activation-fn (lsp-activate-on "python")
+    :server-id 'basedpyright
+    :priority 10)))
 (use-package lsp-ui
   :commands lsp-ui-mode
   :config
@@ -58,4 +66,5 @@
                                (local-set-key (kbd "C-c C-f") 'clang-format-region)
                                (add-hook 'before-save-hook 'clang-format-buffer nil t))))
 
+(setq lsp-restart 'auto-restart)
 (provide 'setup-lsp)
