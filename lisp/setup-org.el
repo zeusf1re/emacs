@@ -174,5 +174,5 @@
             (lambda ()
               (setq-local face-remapping-alist '())
               (display-line-numbers-mode 1))))
-
+(add-hook 'org-mode-hook #'visual-line-mode)
 (provide 'setup-org)
