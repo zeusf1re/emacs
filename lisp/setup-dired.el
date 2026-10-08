@@ -93,5 +93,5 @@
   (setq dirvish-fd-switches ""))
 
 (blink-cursor-mode -1)
-
+(setq delete-by-moving-to-trash t)
 (provide 'setup-dired)

@@ -3,6 +3,7 @@
   :demand t
   :init
   (setq evil-want-integration t)
+  (setq evil-respect-visual-line-mode t)
   (setq evil-want-keybinding nil) 
   :config
   (evil-mode 1))
@@ -89,13 +90,6 @@
 
 (add-hook 'prog-mode-hook 'my-evil-syntax-fix)
 (add-hook 'text-mode-hook 'my-evil-syntax-fix)
-
-;;(defun my/dired-evil-bindings ()
-;;  (evil-define-key 'normal dired-mode-map
-;;    "h" 'dired-up-directory
-;;    "a" 'dired-create-empty-file
-;;    "l" 'dired-find-file))
-;;(add-hook 'dired-mode-hook #'my/dired-evil-bindings)
 
 (global-set-key [escape] 'keyboard-escape-quit)
 
