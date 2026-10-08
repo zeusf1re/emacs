@@ -22,8 +22,20 @@ projectile-bookmarks.eld
 .projectile
 .lsp-session-v1
 recentf
+.clang-format
+.clang-tidy
+.DS_Store
 
 # --- Скрытые мусорные файлы ---
 *~
 \#*\#
 .\#*
+
+# --- Other ---
+.mc-lists.el
+.projectile
+bookmarks
+projectile-bookmarks.eld
+projects
+recentf
+tramp
