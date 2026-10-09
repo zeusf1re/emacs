@@ -25,7 +25,7 @@
   (evil-define-key 'normal lsp-mode-map
     (kbd "g d") 'lsp-find-definition
     (kbd "g r") 'lsp-find-references
-    (kbd "K")   'lsp-describe-thing-at-point))
+    (kbd "K")   'lsp-ui-doc-show))
 (with-eval-after-load 'lsp-mode
   (setq lsp-disabled-clients '(semgrep-ls pyls ty-ls ruff pylsp))
 

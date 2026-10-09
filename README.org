@@ -358,7 +358,7 @@
   (evil-define-key 'normal lsp-mode-map
     (kbd "g d") 'lsp-find-definition
     (kbd "g r") 'lsp-find-references
-    (kbd "K")   'lsp-describe-thing-at-point)
+    (kbd "K")   'lsp-ui-doc-show)
   (setq lsp-disabled-clients '(semgrep-ls pyls ty-ls ruff pylsp))
   (lsp-register-client
    (make-lsp-client :new-connection (lsp-stdio-connection '("basedpyright-langserver" "--stdio"))
