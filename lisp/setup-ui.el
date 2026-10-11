@@ -1,4 +1,4 @@
-
+;;; ===============  setup-magit.el ===============
 
 (setq ns-use-native-fullscreen t)
 
@@ -48,24 +48,48 @@
       scroll-preserve-screen-position t)
 
 (defvar my/popup-whitelist
-  '("\\*Help\\*" "\\*Calculator\\*" "\\*Calc\\*" "\\*Calc Trail\\*"
-    "\\*Completions\\*" "\\*compilation\\*" "\\*Occur\\*" "\\*grep\\*"
-    "\\*vc-.*\\*" "\\*Messages\\*" "\\*Warnings\\*"
-    "\\*Shell Command Output\\*")
+  '("\\*Help\\*"
+    "\\*Calculator\\*"
+    "\\*Calc\\*"
+    "\\*Calc Trail\\*" 
+    "\\*Completions\\*"
+    "\\*compilation\\*"
+    "\\*Occur\\*"
+    "\\*grep\\*"
+    "\\*vc-.*\\*"
+    "\\*Messages\\*"
+    "\\*Warnings\\*"
+    "\\*Shell Command Output\\*"
+    ;; --- magit / transient ---
+    " \\*transient\\*"          ; ведущий пробел — так его создаёт transient
+    "\\*transient\\*"           ; на всякий случай, если имя без пробела
+    "\\*magit"
+    "\\*magit-help\\*")
   "Buffers matching these regexps may open in another window / split.")
 
 (defun my/display-buffer-no-split (orig buffer-or-name &optional action frame)
-  "Force display-buffer to reuse current window unless whitelisted."
+  "Force display-buffer to reuse current window unless whitelisted.
+Magit and transient buffers are exempt — they manage their own
+display action (side window at the bottom)."
   (let* ((name (if (bufferp buffer-or-name)
                    (buffer-name buffer-or-name)
                  (format "%s" buffer-or-name)))
-         (whitelisted (seq-some (lambda (re) (string-match-p re name))
-                                my/popup-whitelist)))
+         (magit-cmd
+          (and (boundp 'real-this-command)
+               (symbolp real-this-command)
+               (string-match-p "\\`\\(magit\\|transient\\)"
+                               (symbol-name real-this-command))))
+         (whitelisted
+          (or magit-cmd
+              (seq-some (lambda (re) (string-match-p re name))
+                        my/popup-whitelist))))
     (funcall orig buffer-or-name
              (if whitelisted
                  action
                '(display-buffer-reuse-window display-buffer-same-window))
              frame)))
+
+(advice-add 'display-buffer :around #'my/display-buffer-no-split)
 
 (advice-add 'display-buffer :around #'my/display-buffer-no-split)
 ;; ---- popup policy ----
@@ -97,5 +121,14 @@
             (lambda (&rest _)
               (when-let ((win (get-buffer-window "*lsp-help*")))
                 (select-window win))))
+;; Magit: diff/log/revision — снизу отдельным окном внутри того же frame.
+(add-to-list 'display-buffer-alist
+             '("\\`\\*magit-\\(diff\\|log\\|revision\\|process\\)"
+               (display-buffer-below-selected)
+               (window-height . 0.4)
+               (dedicated . t)))
+(setq pop-up-frames nil)
+(setq display-buffer-base-action '(display-buffer-reuse-window
+                                   display-buffer-same-window)) 
 (provide 'setup-ui)
 

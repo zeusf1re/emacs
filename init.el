@@ -96,3 +96,4 @@
 (require 'setup-dashboard)
 (require 'setup-typst)
 (require 'setup-dired)
+(require 'setup-magit)

@@ -62,7 +62,7 @@
     "c a" 'lsp-execute-code-action
     "c r" 'lsp-rename
     "c e" 'lsp-ui-doc-show
-    "g d" 'lsp-find-references
+    "c g d" 'lsp-find-references
 
     "c c" 'compile
 
@@ -83,7 +83,10 @@
     "o l" 'org-latex-preview
     "o L" 'my/org-latex-preview-all
 
-    "d"   'dired))
+    "d"   'dired
+
+  "g s" 'magit-status)
+  )
 (defun my-evil-syntax-fix ()
   (modify-syntax-entry ?_ "w")
   (modify-syntax-entry ?- "w"))
