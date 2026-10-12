@@ -13,7 +13,7 @@
 
 (use-package kanagawa-themes
   :config
-  (load-theme 'kanagawa-wave t)
+  (load-theme 'kanagawa-dragon t)
   
     (set-face-attribute 'header-line nil :background nil :inherit 'default)
   
@@ -64,7 +64,10 @@
     " \\*transient\\*"          ; ведущий пробел — так его создаёт transient
     "\\*transient\\*"           ; на всякий случай, если имя без пробела
     "\\*magit"
-    "\\*magit-help\\*")
+    "\\*magit-help\\*"
+    ;; -- org-roam --
+    "\\*org-roam\\*"
+    )
   "Buffers matching these regexps may open in another window / split.")
 
 (defun my/display-buffer-no-split (orig buffer-or-name &optional action frame)
@@ -117,6 +120,15 @@ display action (side window at the bottom)."
                (side . right)
                (slot . -1)              ; -1 = верхний слот среди right-side окон
                (window-width . 0.35)))
+
+(add-to-list 'display-buffer-alist
+             '("\\*org-roam\\*"
+               (display-buffer-in-side-window)
+               (side . bottom)
+               (slot . 1)               ; 0 занят lsp-help, ставим 1 (ниже)
+               (window-width . 0.40)
+               (dedicated . t)))
+
 (advice-add 'lsp-describe-thing-at-point :after
             (lambda (&rest _)
               (when-let ((win (get-buffer-window "*lsp-help*")))

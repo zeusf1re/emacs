@@ -67,6 +67,9 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(blink-cursor-blinks 0)
+ '(custom-safe-themes
+   '("d2ab3d4f005a9ad4fb789a8f65606c72f30ce9d281a9e42da55f7f4b9ef5bfc6"
+     default))
  '(warning-suppress-types '((ox-latex))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

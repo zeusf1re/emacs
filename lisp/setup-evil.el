@@ -79,14 +79,24 @@
     "h b" 'describe-bindings
     "h k" 'describe-key
     "h m" 'describe-mode
+    "h v" 'describe-variable
 
     "o l" 'org-latex-preview
     "o L" 'my/org-latex-preview-all
 
     "d"   'dired
 
-  "g s" 'magit-status)
-  )
+    "g s" 'magit-status
+
+    "r f" 'org-roam-node-find
+    "r i" 'org-roam-node-insert
+    "r c" 'org-roam-capture
+    "r l" 'org-roam-buffer-toggle
+    "r D" 'org-roam-dailies-capture-today
+    "r d" 'org-roam-dailies-goto-today
+    "r t" 'org-roam-tag-add
+    "r g" 'org-roam-graph
+    ))
 (defun my-evil-syntax-fix ()
   (modify-syntax-entry ?_ "w")
   (modify-syntax-entry ?- "w"))

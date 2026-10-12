@@ -175,4 +175,77 @@
               (setq-local face-remapping-alist '())
               (display-line-numbers-mode 1))))
 (add-hook 'org-mode-hook #'visual-line-mode)
+
+
+;; org-roam
+;;; ---- Org-roam ----
+(use-package org-roam
+  :ensure t
+  :after org
+  :custom
+  (org-roam-directory (file-truename "~/org/roam/"))
+  ;; 2. Папка для ежедневника (Dailies)
+  (org-roam-dailies-directory "daily/")
+  ;; 3. База данных для мгновенного поиска (SQLite)
+  (org-roam-database-connector 'sqlite-builtin)
+  :bind (("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n d" . org-roam-dailies-capture-today)
+         :map org-mode-map
+         ("C-c n t" . org-roam-tag-add))
+  :config
+  ;; Настройки отображения списка узлов в minibuffer (как у vertico)
+  (setq org-roam-node-display-template
+        (concat "${title:*} " (propertize "${tags:15}" 'face 'org-tag)))
+  ;; Шаблон для новой заметки-узла
+(defvar my/org-roam-lecture-header
+  (concat
+   "#+TITLE: ${title}\n"
+   "#+AUTHOR: Студент группы ИУ5-56Б Канаев А.И.\n"
+   "#+DATE: %<%Y-%m-%d>\n"
+   "#+LANGUAGE: ru\n"
+   "#+OPTIONS: toc:1 num:t ^:nil\n"
+   "#+STARTUP: fold\n"
+   "#+LATEX_COMPILER: xelatex\n"
+   "#+LATEX_HEADER: \\setmainfont{Arial}\n"
+   "#+LATEX_HEADER: \\setsansfont{Arial}\n"
+   "#+LATEX_HEADER: \\setmonofont{Menlo}\n"
+   "#+LATEX_HEADER: \\newfontfamily\\cyrillicfont{Arial}\n"
+   "#+LATEX_HEADER: \\newfontfamily\\cyrillicfontsf{Arial}\n"
+   "#+LATEX_HEADER: \\newfontfamily\\cyrillicfonttt{Menlo}\n"
+   "#+LATEX_HEADER: \\geometry{left=1cm, right=1cm, top=2cm, bottom=2cm}\n"
+   "#+LATEX_HEADER: \\usepackage{minted}\n"
+   "#+LATEX_HEADER: \\usepackage{xcolor}\n"
+   "#+LATEX_HEADER: \\definecolor{bg}{HTML}{282828}\n")
+  "Header for lecture notes in org-roam.")
+
+(setq org-roam-capture-templates
+      `(("d" "default" plain "%?"
+         :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                            "#+TITLE: ${title}\n")
+         :unnarrowed t)
+        ("l" "lecture" plain "%?"
+         :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                            ,my/org-roam-lecture-header)
+         :unnarrowed t)))
+  ;; Шаблон для ежедневной заметки
+  (setq org-roam-dailies-capture-templates
+        '(("d" "default" entry "* %?"
+           :target (file+head "%<%Y-%m-%d>.org"
+                              "#+title: %<%Y-%m-%d>\n"))))
+  ;; Активируем режим
+  (org-roam-setup))
+
+
+(with-eval-after-load 'org-roam
+  (with-eval-after-load 'evil
+    (evil-set-initial-state 'org-roam-buffer-mode 'normal)))
+(with-eval-after-load 'org-roam
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal org-roam-preview-map
+      (kbd "0") #'evil-beginning-of-line
+      (kbd "^") #'evil-first-non-blank
+      (kbd "$") #'evil-end-of-line)))
 (provide 'setup-org)
