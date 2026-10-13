@@ -96,6 +96,8 @@
     "r d" 'org-roam-dailies-goto-today
     "r t" 'org-roam-tag-add
     "r g" 'org-roam-graph
+    "r u" 'org-roam-ui-mode
+    "r k" 'my/kill-org-roam-buffers
     ))
 (defun my-evil-syntax-fix ()
   (modify-syntax-entry ?_ "w")

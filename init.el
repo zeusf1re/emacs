@@ -80,7 +80,7 @@
 (setq ring-bell-function 'ignore) 
 
 (require 'custom)
-(require 'setup-evil)
+(require 'setupetevil)
 (require 'setup-ui)
 (require 'setup-completion)
 (require 'setup-lsp)

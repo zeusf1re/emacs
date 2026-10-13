@@ -67,6 +67,7 @@
     "\\*magit-help\\*"
     ;; -- org-roam --
     "\\*org-roam\\*"
+    "\\`CAPTURE"
     )
   "Buffers matching these regexps may open in another window / split.")
 
@@ -125,8 +126,14 @@ display action (side window at the bottom)."
              '("\\*org-roam\\*"
                (display-buffer-in-side-window)
                (side . bottom)
-               (slot . 1)               ; 0 занят lsp-help, ставим 1 (ниже)
-               (window-width . 0.40)
+               (slot . 1)
+               (window-height . 0.40)
+               (dedicated . t)))
+(add-to-list 'display-buffer-alist
+             '("\\`CAPTURE"
+               (display-buffer-in-side-window)
+               (side . right)
+               (window-width . 0.5)
                (dedicated . t)))
 
 (advice-add 'lsp-describe-thing-at-point :after

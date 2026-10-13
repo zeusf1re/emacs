@@ -224,7 +224,7 @@
 (setq org-roam-capture-templates
       `(("d" "default" plain "%?"
          :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                            "#+TITLE: ${title}\n")
+                            "#+TITLE: ${title}\n#+DATE: %U\n")
          :unnarrowed t)
         ("l" "lecture" plain "%?"
          :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
@@ -248,4 +248,37 @@
       (kbd "0") #'evil-beginning-of-line
       (kbd "^") #'evil-first-non-blank
       (kbd "$") #'evil-end-of-line)))
+
+;; === org-download ==
+(use-package org-download
+  :ensure t
+  :after org
+  :config
+  ;; 1. Изображения будут складываться в ~/org/roam/images/
+  (setq org-download-method 'directory)
+  (setq org-download-image-dir (expand-file-name "images" org-roam-directory))
+  ;; 2. Отключаем создание подпапок по заголовкам, чтобы всё было в одной папке
+  (setq org-download-heading-lvl nil)
+  ;; 3. Добавляем временную метку к имени файла, чтобы имена были уникальными
+  (setq org-download-timestamp "%Y%m%d-%H%M%S_")
+  ;; 4. Для macOS: указываем, какую утилиту использовать для работы с буфером
+  (setq org-download-screenshot-method "/opt/homebrew/bin/pngpaste %s")
+  :bind (("C-M-y" . org-download-clipboard) ; Удобный биндинг для вставки
+         ("C-c i i" . org-download-image))) ; Для вставки из файла
+(setq org-download-annotate-function (lambda (_link) ""))
+;;(setq org-roam-graph-exclude-matcher '("daily" "journal" "2026-")) -- чтобы вырубить дневники из графа
+
+;; === graph ui ===
+(use-package org-roam-ui
+  :ensure t
+  :after org-roam
+  :config
+  ;; Синхронизировать тему ORUI с темой Emacs
+  (setq org-roam-ui-sync-theme t)
+  ;; Следовать за текущим узлом в Emacs
+  (setq org-roam-ui-follow t)
+  ;; Обновлять граф при сохранении файла
+  (setq org-roam-ui-update-on-save t)
+  ;; Не открывать браузер автоматически при запуске
+  (setq org-roam-ui-open-on-start nil))
 (provide 'setup-org)

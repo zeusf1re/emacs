@@ -28,4 +28,19 @@
 (global-auto-revert-mode 1)
 (setq auto-revert-verbose nil)   ; silence "Reverting buffer ..." messages
 (electric-pair-mode t)
+
+(defun my/kill-org-roam-buffers ()
+  "Kill all Org-roam buffers (files under `org-roam-directory').
+Does not kill the org-roam side buffer (`*org-roam*')."
+  (interactive)
+  (let ((roam-dir (file-truename org-roam-directory))
+        (count 0))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (when (and buffer-file-name
+                   (string-prefix-p roam-dir (file-truename buffer-file-name)))
+          (kill-buffer buf)
+          (setq count (1+ count)))))
+    (message "Killed %d org-roam buffer(s)" count)))
+
 (provide 'custom)
