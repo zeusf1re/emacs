@@ -90,13 +90,20 @@
 
     "r f" 'org-roam-node-find
     "r i" 'org-roam-node-insert
+    "r I" 'org-roam-node-insert-immediate
     "r c" 'org-roam-capture
     "r l" 'org-roam-buffer-toggle
     "r D" 'org-roam-dailies-capture-today
-    "r d" 'org-roam-dailies-goto-today
+    ;;"r d" 'org-roam-dailies-goto-today
+    "r d d" 'org-roam-dailies-goto-today
+    "r d t" 'org-roam-dailies-goto-tomorrow
+    "r d y" 'org-roam-dailies-goto-yesterday
+    "r d D" 'org-roam-dailies-goto-today
+    "r d T" 'org-roam-dailies-goto-tomorrow
+    "r d Y" 'org-roam-dailies-goto-yesterday
     "r t" 'org-roam-tag-add
-    "r g" 'org-roam-graph
-    "r u" 'org-roam-ui-mode
+    "r g " 'org-roam-graph
+    "r u" 'org-roam-ui-open
     "r k" 'my/kill-org-roam-buffers
     ))
 (defun my-evil-syntax-fix ()

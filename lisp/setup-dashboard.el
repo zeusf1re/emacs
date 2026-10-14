@@ -6,7 +6,7 @@
   (advice-remove 'dashboard-insert-startupify-lists
                  'evil-collection-dashboard-setup-jump-commands)
 
-  (setq dashboard-startup-banner "~/Downloads/-2.jpg") 
+  (setq dashboard-startup-banner "~/.config/emacs/my_images/Amalthea_dreams.gif")
  (setq dashboard-center-content t)
  (setq dashboard-banner-logo-title nil)
 

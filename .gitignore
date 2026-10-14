@@ -42,3 +42,4 @@ tramp
 transient/
 
 org-roam.db
+.org-id-locations

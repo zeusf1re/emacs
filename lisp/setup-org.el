@@ -2,23 +2,23 @@
 (add-to-list 'exec-path "/Library/TeX/texbin")
 
 (use-package org
-  :ensure nil
-  :demand t
-  :hook (org-mode . org-indent-mode)
-  :config
-    (setq org-startup-with-inline-images t)   
-  (setq org-image-actual-width '(300))      
-  (setq org-return-follows-link t)          
-  (setq org-hide-emphasis-markers t)        
-  (setq org-ellipsis " ▾")
+    :ensure nil
+    :demand t
+    :hook (org-mode . org-indent-mode)
+    :config
+        (setq org-startup-with-inline-images t)   
+    (setq org-image-actual-width '(300))      
+    (setq org-return-follows-link t)          
+    (setq org-hide-emphasis-markers t)        
+    (setq org-ellipsis " ▾")
 
     (setq org-directory "~/org/")
-  (setq org-default-notes-file (concat org-directory "/tasks.org"))
-  (setq org-capture-templates
-        '(("t" "Todo" entry (file+headline "tasks.org" "Inbox")
-           "* TODO %?\n  %i\n  %a")
-          ("d" "Date Task" entry (file+headline "tasks.org" "Schedule")
-           "* TODO %?\n  SCHEDULED: %^t\n")))
+    (setq org-default-notes-file (concat org-directory "/tasks.org"))
+    (setq org-capture-templates
+            '(("t" "Todo" entry (file+headline "tasks.org" "Inbox")
+            "* TODO %?\n  %i\n  %a")
+            ("d" "Date Task" entry (file+headline "tasks.org" "Schedule")
+            "* TODO %?\n  SCHEDULED: %^t\n")))
 
       (require 'ox-latex)
 
@@ -188,13 +188,6 @@
   (org-roam-dailies-directory "daily/")
   ;; 3. База данных для мгновенного поиска (SQLite)
   (org-roam-database-connector 'sqlite-builtin)
-  :bind (("C-c n f" . org-roam-node-find)
-         ("C-c n i" . org-roam-node-insert)
-         ("C-c n c" . org-roam-capture)
-         ("C-c n l" . org-roam-buffer-toggle)
-         ("C-c n d" . org-roam-dailies-capture-today)
-         :map org-mode-map
-         ("C-c n t" . org-roam-tag-add))
   :config
   ;; Настройки отображения списка узлов в minibuffer (как у vertico)
   (setq org-roam-node-display-template
@@ -224,7 +217,7 @@
 (setq org-roam-capture-templates
       `(("d" "default" plain "%?"
          :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                            "#+TITLE: ${title}\n#+DATE: %U\n")
+                            "#+TITLE: ${title}\n")
          :unnarrowed t)
         ("l" "lecture" plain "%?"
          :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
@@ -281,4 +274,32 @@
   (setq org-roam-ui-update-on-save t)
   ;; Не открывать браузер автоматически при запуске
   (setq org-roam-ui-open-on-start nil))
+
+(with-eval-after-load 'org
+  (define-key org-read-date-minibuffer-local-map (kbd "h")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-day 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "l")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-day 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "j")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-week 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "k")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-week 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "H")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-month 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "L")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-month 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "K")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-year 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "J")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-year 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "g")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-goto-today)))))
+
+(defun org-roam-node-insert-immediate (arg &rest args)
+  (interactive "P")
+  (let ((args (push arg args))
+        (org-roam-capture-templates (list (append (car org-roam-capture-templates)
+                                                  '(:immediate-finish t)))))
+    (apply #'org-roam-node-insert args)))
+
 (provide 'setup-org)

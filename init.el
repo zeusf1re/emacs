@@ -79,8 +79,7 @@
  )
 (setq ring-bell-function 'ignore) 
 
-(require 'custom)
-(require 'setupetevil)
+(require 'setup-evil)
 (require 'setup-ui)
 (require 'setup-completion)
 (require 'setup-lsp)
@@ -100,3 +99,4 @@
 (require 'setup-typst)
 (require 'setup-dired)
 (require 'setup-magit)
+(require 'setup-custom)

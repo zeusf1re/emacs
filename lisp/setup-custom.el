@@ -43,4 +43,4 @@ Does not kill the org-roam side buffer (`*org-roam*')."
           (setq count (1+ count)))))
     (message "Killed %d org-roam buffer(s)" count)))
 
-(provide 'custom)
+(provide 'setup-custom)
