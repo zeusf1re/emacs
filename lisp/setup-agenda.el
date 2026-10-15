@@ -1,9 +1,10 @@
-(setq org-agenda-files (directory-files-recursively "~/org" "\\.org$"))
+;;(setq org-agenda-files (directory-files-recursively "~/org" "\\.org$"))
 
 (setq org-agenda-start-on-weekday nil)  
 (setq org-agenda-start-day "+0d")       
 (setq org-agenda-span 7)                
 (setq org-deadline-warning-days 0)
+(setq org-agenda-hide-tags-regexp "discipline")
 
 (use-package evil-org
   :ensure t

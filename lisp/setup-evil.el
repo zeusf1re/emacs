@@ -84,11 +84,12 @@
     "o l" 'org-latex-preview
     "o L" 'my/org-latex-preview-all
 
-    "d"   'dired
+    "d"   'dashboard-open
 
     "g s" 'magit-status
 
-    "r f" 'org-roam-node-find
+    "r f f" 'org-roam-node-find
+    "r f t" 'my/org-roam-node-find-by-tag
     "r i" 'org-roam-node-insert
     "r I" 'org-roam-node-insert-immediate
     "r c" 'org-roam-capture
@@ -98,9 +99,9 @@
     "r d d" 'org-roam-dailies-goto-today
     "r d t" 'org-roam-dailies-goto-tomorrow
     "r d y" 'org-roam-dailies-goto-yesterday
-    "r d D" 'org-roam-dailies-goto-today
-    "r d T" 'org-roam-dailies-goto-tomorrow
-    "r d Y" 'org-roam-dailies-goto-yesterday
+    "r d D" 'org-roam-dailies-capture-today
+    "r d T" 'org-roam-dailies-capture-tomorrow
+    "r d Y" 'org-roam-dailies-capture-yesterday
     "r t" 'org-roam-tag-add
     "r g " 'org-roam-graph
     "r u" 'org-roam-ui-open

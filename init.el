@@ -88,6 +88,7 @@
 (require 'setup-term)
 (require 'setup-pdf)
 (require 'setup-org)
+(require 'setup-roam)
 (require 'setup-drag)
 (require 'setup-agenda)
 (require 'setup-calfw)

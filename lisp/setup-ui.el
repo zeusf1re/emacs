@@ -23,11 +23,11 @@
     (set-face-attribute 'lsp-headerline-breadcrumb-symbols-face nil :background nil :weight 'bold)))
 (use-package nerd-icons)
 
+;; === doom-modeline ===
 (use-package doom-modeline
   :init (doom-modeline-mode 1)
   :config
   (setq doom-modeline-height 35))
-
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
