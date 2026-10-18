@@ -34,15 +34,6 @@
 (use-package transient
   :ensure t)
 
-
-
-
-(setq scroll-margin 2
-      scroll-conservatively 101
-      scroll-preserve-screen-position t)
-
-
-
 (setq scroll-margin 2
       scroll-conservatively 101
       scroll-preserve-screen-position t)
@@ -68,6 +59,8 @@
     ;; -- org-roam --
     "\\*org-roam\\*"
     "\\`CAPTURE"
+    ;; -- calendar --
+    "\\*Calendar\\*"
     )
   "Buffers matching these regexps may open in another window / split.")
 
@@ -149,5 +142,19 @@ display action (side window at the bottom)."
 (setq pop-up-frames nil)
 (setq display-buffer-base-action '(display-buffer-reuse-window
                                    display-buffer-same-window)) 
+(use-package colorful-mode
+  :ensure t
+  :hook ((prog-mode . colorful-mode)
+         (css-mode . colorful-mode)
+         (html-mode . colorful-mode)
+         (latex-mode . colorful-mode)
+         (org-mode . colorful-mode)
+(emacs-lisp-mode . colorful-mode)
+         )
+  :config
+  ;; Показывать превью цвета прямо в тексте (по умолчанию t)
+  (setq colorful-use-prefix nil)
+  ;; Не подсвечивать цвета внутри комментариев (по умолчанию nil)
+  (setq colorful-highlight-in-comments nil))
 (provide 'setup-ui)
 

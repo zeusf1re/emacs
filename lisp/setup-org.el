@@ -75,13 +75,6 @@
      (js . t)
      (org . t))))
 (setq org-babel-python-command "python3")
-(use-package org-modern
-  :ensure t
-  :hook ((org-mode . org-modern-mode)
-         (org-agenda-finalize . org-modern-agenda))
-  :config
-  (setq org-modern-star '("◉" "○" "◈" "◇" "✳" "◆" "□"))
-  (setq org-modern-table nil)) 
 
 (defun my/org-latex-preview-all ()
   "Обновить все формулы в буфере"
@@ -103,7 +96,8 @@
 (with-eval-after-load 'evil
   (with-eval-after-load 'org
     (evil-define-key 'normal org-mode-map (kbd "RET") 'my/org-ret-dwim)
-    (evil-define-key 'insert org-mode-map (kbd "RET") 'org-return)))
+    (evil-define-key 'insert org-mode-map (kbd "RET") 'org-return)
+    (evil-define-key 'normal org-mode-map (kbd "t") #'org-todo)))
 
 (use-package org-present
   :ensure t
@@ -198,4 +192,63 @@
   (define-key org-read-date-minibuffer-local-map (kbd "g")
     (lambda () (interactive) (org-eval-in-calendar '(calendar-goto-today)))))
 
+;; ======= org-mode stilisation ======= 
+(use-package org-modern
+  :ensure t
+  :hook ((org-mode . org-modern-mode)
+         (org-agenda-finalize . org-modern-agenda))
+  :config
+  ;; --- Иконки-звёздочки (статичные) ---
+  (setq org-modern-star 'replace) ; Включаем режим замены, чтобы ваши символы заработали
+(setq org-modern-replace-stars "○○◇◇✳◆□")
+
+  ;; --- Чекбоксы ---
+(setq org-modern-checkbox '((88 . "☑") (45 . #("□–" 0 2 (composition (0 2 [9633 8211]))))
+ (32 . "□")))
+
+  ;; --- Убираем лишнее в блоках кода ---
+  (setq org-modern-table t)          ; Отключаем стилизацию таблиц, если она не нужна
+  (setq org-modern-block-fringe nil)   ; Убираем полоску слева от блоков
+
+  (with-eval-after-load 'org
+    (custom-set-faces
+     ;; Заголовки
+     '(org-level-1 ((t (:foreground "#B8B4D0" :height 1.25 :weight bold))));;8992A7
+     '(org-level-2 ((t (:foreground "#8ba4b0" :height 1.2 :weight semi-bold))));; c4b28a
+     '(org-level-3 ((t (:foreground "#a292a3" :height 1.1 :weight normal))))
+
+     ;; Verbatim и Code
+     '(org-verbatim ((t (:foreground "#b6927b" :background nil))))
+
+     ;; Статус DONE
+     '(org-done ((t (:foreground "#98BB6C" :strike-through nil :weight semi-bold)))))))
+
+(with-eval-after-load 'org-modern
+  (custom-set-faces
+   ;; Базовая метка: высота как у основного текста (или чуть меньше), жирный шрифт
+   '(org-modern-label ((t (:height 0.9 :weight semi-bold :inherit default))))
+
+   ;; DONE — спокойный зелёный Kanagawa
+   '(org-modern-done ((t (:background "#98BB6C" :foreground "#1f1f28" :weight bold))))
+   '(org-modern-todo ((t (:background "#DCA561" :foreground "#1f1f28" :weight bold))))
+
+   ;; Приоритеты
+   '(org-modern-priority ((t (:background "#a292a3" :foreground "#1f1f28"))))
+
+   ;; Теги
+   '(org-modern-tag ((t (:background "#2d4f67" :foreground "#dcd7ba"))))
+   )
+  )
+;; org-agenda-structure
+
+;; И не забываем про сам текст заголовка со статусом DONE
+(with-eval-after-load 'org
+  (custom-set-faces
+   '(org-done ((t (:foreground "#8a9a7b" :strike-through nil :weight normal))))
+   '(org-headline-done ((t (:strike-through nil :foreground "#8a9a7b"))))
+   )
+  (setq org-fontify-done-headline nil)
+  )
+
 (provide 'setup-org)
+

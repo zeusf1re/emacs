@@ -70,16 +70,21 @@
 
     "a c" 'calfw-org-open-calendar
     "a a" 'org-agenda
-    "a d" 'org-timestamp
+    "a t" 'org-timestamp
+    "a d" 'org-deadline
+    "a s" 'org-schedule
     "a i" 'org-clock-in
     "a o" 'org-clock-out
     "a l" 'org-clock-in-last
+    "a n" 'org-add-note
 
 
     "h b" 'describe-bindings
     "h k" 'describe-key
     "h m" 'describe-mode
     "h v" 'describe-variable
+    "h f" 'describe-function
+    "h s" 'describe-face
 
     "o l" 'org-latex-preview
     "o L" 'my/org-latex-preview-all

@@ -1,0 +1,27 @@
+#+TITLE: Emacs Config Plans
+#+CATEGORY: Emacs
+#+FILETAGS: :emacs:config:
+#+OPTIONS: toc:1 num:nil ^:nil
+
+* Активные задачи :active:
+** TODO make todo box shorter in height                        :fonts:org:
+** DONE t - toggle TODO/DONE                                           :org:
+** TODO tag alignment :org:
+** DONE Fonts in agenda view
+** DONE agenda-views                                              :agenda:
+So-so, but okey for now.
+
+** TODO tab 4 spaces in C                                            :c:
+** TODO gc -> comment                                                :keybind:
+** TODO my/kill-all-magit-buffers :buffers:magit:
+** TODO Сapture template                                          :agenda:
+Сделать либо все в активные задачи, либо на выбор. В emacs/plans.org
+
+** TODO Autosort =done= tasks                                   :agenda:org:
+* Бэклог и идеи                                                     :backlog:
+** DONE Изучить org-super-agenda                                    :agenda:
+** TODO Попробовать vertico-multiform                                 :completion:
+
+* Готово
+** DONE make agenda show 7 days further after current day
+** DONE babel in org-mode in code(SRC) segments is not working with python
