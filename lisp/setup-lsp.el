@@ -22,11 +22,10 @@
     (set-face-attribute 'lsp-face-semhl-function nil :background nil)))
 
 (with-eval-after-load 'lsp-mode
-  (evil-define-key 'normal lsp-mode-map
-    (kbd "g d") 'lsp-find-definition
-    (kbd "g r") 'lsp-find-references
-    (kbd "K")   'lsp-ui-doc-show))
-(with-eval-after-load 'lsp-mode
+  (define-key lsp-mode-map (kbd "g d") #'lsp-find-definition)
+  (define-key lsp-mode-map (kbd "g r") #'lsp-find-references)
+  (define-key lsp-mode-map (kbd "K")   #'lsp-ui-doc-show)
+
   (setq lsp-disabled-clients '(semgrep-ls pyls ty-ls ruff pylsp))
 
   (lsp-register-client

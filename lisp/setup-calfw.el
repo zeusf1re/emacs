@@ -4,16 +4,15 @@
   (require 'calfw-org))
 
 (with-eval-after-load 'calfw
-  (evil-define-key '(normal motion) calfw-calendar-mode-map
-    "j" 'calfw-navi-next-week-command
-    "k" 'calfw-navi-previous-week-command
-    "h" 'calfw-navi-previous-day-command
-    "l" 'calfw-navi-next-day-command
-    "g" 'calfw-org-goto-date
-    "x" 'calfw-refresh-calendar-buffer
-    "q" 'bury-buffer
-    (kbd "RET") 'calfw-org-open-agenda-day
-    (kbd "TAB") 'calfw-show-details-command))
+  (define-key calfw-calendar-mode-map (kbd "j")  #'calfw-navi-next-week-command)
+  (define-key calfw-calendar-mode-map (kbd "k")  #'calfw-navi-previous-week-command)
+  (define-key calfw-calendar-mode-map (kbd "h")  #'calfw-navi-previous-day-command)
+  (define-key calfw-calendar-mode-map (kbd "l")  #'calfw-navi-next-day-command)
+  (define-key calfw-calendar-mode-map (kbd "g")  #'calfw-org-goto-date)
+  (define-key calfw-calendar-mode-map (kbd "x")  #'calfw-refresh-calendar-buffer)
+  (define-key calfw-calendar-mode-map (kbd "q")  #'bury-buffer)
+  (define-key calfw-calendar-mode-map (kbd "RET") #'calfw-org-open-agenda-day)
+  (define-key calfw-calendar-mode-map (kbd "TAB") #'calfw-show-details-command))
 
 (autoload 'calfw-open-org-calendar "calfw-org" "Open Org Calendar" t)
 

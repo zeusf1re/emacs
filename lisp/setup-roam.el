@@ -61,14 +61,9 @@
 
 
 (with-eval-after-load 'org-roam
-  (with-eval-after-load 'evil
-    (evil-set-initial-state 'org-roam-buffer-mode 'normal)))
-(with-eval-after-load 'org-roam
-  (with-eval-after-load 'evil
-    (evil-define-key 'normal org-roam-preview-map
-      (kbd "0") #'evil-beginning-of-line
-      (kbd "^") #'evil-first-non-blank
-      (kbd "$") #'evil-end-of-line)))
+  (define-key org-roam-preview-map (kbd "0") #'beginning-of-line)
+  (define-key org-roam-preview-map (kbd "^") #'back-to-indentation)
+  (define-key org-roam-preview-map (kbd "$") #'end-of-line))
 
 ;; === org-download ==
 (use-package org-download

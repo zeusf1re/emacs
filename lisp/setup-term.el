@@ -6,6 +6,6 @@
   :config
   (setq vterm-max-scrollback 10000)
 
-  (evil-define-key 'insert vterm-mode-map (kbd "SPC") #'vterm--self-insert))
+  (define-key vterm-mode-map (kbd "SPC") #'vterm--self-insert))
 
 (provide 'setup-term)

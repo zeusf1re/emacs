@@ -1,4 +1,4 @@
-;;; setup-dired.el --- Dired + Dirvish + Evil -*- lexical-binding: t; -*-
+;;; setup-dired.el --- Dired + Dirvish -*- lexical-binding: t; -*-
 
 (use-package dired-ranger
   :ensure t
@@ -31,34 +31,27 @@
   (when (executable-find "fd")
     (require 'dirvish-fd nil t))
 
-  ;; ---- evil-биндинги для dirvish ----
-  (with-eval-after-load 'evil
-    (evil-make-overriding-map dirvish-mode-map 'normal)
-    (evil-define-key 'normal dirvish-mode-map
-      "n"  'evil-ex-search-next
-      "N"  'evil-ex-search-previous
-      "G"  'end-of-buffer
-      "gg" 'evil-goto-first-line)))
+  ;; ---- биндинги для dirvish ----
+  (define-key dirvish-mode-map (kbd "n")  #'isearch-forward)
+  (define-key dirvish-mode-map (kbd "N")  #'isearch-backward)
+  (define-key dirvish-mode-map (kbd "G")  #'end-of-buffer)
+  (define-key dirvish-mode-map (kbd "gg") #'beginning-of-buffer))
 
 ;; ---- биндинги для классического dired ----
-(defun my/dired-evil-bindings ()
-  "Мои кастомные биндинги для dired в evil-mode."
-  (with-eval-after-load 'evil
-    (evil-define-key 'normal dired-mode-map
-      "h" 'dired-up-directory
-      "l" 'dired-find-file
-      "a" 'dired-create-empty-file
-      "A" 'dired-create-directory
-      "c" 'dired-ranger-copy
-      "M" 'dired-ranger-move
-      "p" 'dired-ranger-paste
-      "d" 'dired-do-delete
-      "i" 'wdired-change-to-wdired-mode
-      "m" 'dired-mark)
-    (evil-define-key 'visual dired-mode-map
-      "m" 'dired-mark)))
+(defun my/dired-keys ()
+  "Мои кастомные биндинги для dired."
+  (define-key dired-mode-map (kbd "h") #'dired-up-directory)
+  (define-key dired-mode-map (kbd "l") #'dired-find-file)
+  (define-key dired-mode-map (kbd "a") #'dired-create-empty-file)
+  (define-key dired-mode-map (kbd "A") #'dired-create-directory)
+  (define-key dired-mode-map (kbd "c") #'dired-ranger-copy)
+  (define-key dired-mode-map (kbd "M") #'dired-ranger-move)
+  (define-key dired-mode-map (kbd "p") #'dired-ranger-paste)
+  (define-key dired-mode-map (kbd "d") #'dired-do-delete)
+  (define-key dired-mode-map (kbd "i") #'wdired-change-to-wdired-mode)
+  (define-key dired-mode-map (kbd "m") #'dired-mark))
 
-(add-hook 'dired-mode-hook #'my/dired-evil-bindings)
+(add-hook 'dired-mode-hook #'my/dired-keys)
 
 ;; ---- dired настройки ----
 (setq dired-listing-switches
@@ -66,7 +59,6 @@
 
 (setq dirvish-header-line-format '(:left (path) :right (free-space)))
 (setq dirvish-hide-cursor t)
-(add-hook 'dired-mode-hook (lambda () (setq-local evil-normal-state-cursor nil)))
 
 (setq dirvish-use-header-line 'global)
 (setq dirvish-mode-line-bar-image-width 0)

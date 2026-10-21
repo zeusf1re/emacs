@@ -184,20 +184,10 @@
     (message "Ошибка компиляции — смотри *typst-compile*")))
 
 (defun my/typst--bind-keys ()
-  "Evil/C-c bindings for typst buffers."
-  (when (featurep 'evil)
-    (evil-define-key 'normal typst-mode-map
-      (kbd "C-c C-c") #'my/typst-compile
-      (kbd "C-c C-p") #'my/typst-live-preview
-      (kbd "C-c C-s") #'my/typst-stop-preview
-      (kbd "C-c C-r") #'my/typst--refresh-pdf)))
-
-(with-eval-after-load 'general
-  (with-eval-after-load 'typst-mode
-    (my-leader-def :keymaps 'typst-mode-map
-      "m c" #'my/typst-compile
-      "m p" #'my/typst-live-preview
-      "m s" #'my/typst-stop-preview
-      "m r" #'my/typst--refresh-pdf)))
+  "C-c bindings for typst buffers."
+  (define-key typst-mode-map (kbd "C-c C-c") #'my/typst-compile)
+  (define-key typst-mode-map (kbd "C-c C-p") #'my/typst-live-preview)
+  (define-key typst-mode-map (kbd "C-c C-s") #'my/typst-stop-preview)
+  (define-key typst-mode-map (kbd "C-c C-r") #'my/typst--refresh-pdf))
 
 (provide 'setup-typst)

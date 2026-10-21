@@ -18,33 +18,24 @@
       (my/org-roam-refresh-agenda-list)))
   (advice-add 'org-agenda :before #'my/refresh-agenda-files-before-agenda))
 
-;; ====== Evil-org ======
-(use-package evil-org
-  :ensure t
-  :after org
-  :hook (org-mode . evil-org-mode)
-  :config
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+;; ====== Биндинги org-agenda ======
+(defun my/setup-agenda-keys ()
+  "Кастомные биндинги для `org-agenda-mode'."
+  (define-key org-agenda-mode-map (kbd "h")   #'org-agenda-earlier)
+  (define-key org-agenda-mode-map (kbd "l")   #'org-agenda-later)
+  (define-key org-agenda-mode-map (kbd "j")   #'org-agenda-next-item)
+  (define-key org-agenda-mode-map (kbd "k")   #'org-agenda-previous-item)
+  (define-key org-agenda-mode-map (kbd "t")   #'org-agenda-todo)
+  (define-key org-agenda-mode-map (kbd "I")   #'org-agenda-clock-in)
+  (define-key org-agenda-mode-map (kbd "O")   #'org-agenda-clock-out)
+  (define-key org-agenda-mode-map (kbd "s")   #'org-agenda-schedule)
+  (define-key org-agenda-mode-map (kbd "d")   #'org-agenda-deadline)
+  (define-key org-agenda-mode-map (kbd "c")   #'org-capture)
+  (define-key org-agenda-mode-map (kbd "q")   #'org-agenda-quit)
+  (define-key org-agenda-mode-map (kbd "r")   #'org-agenda-redo)
+  (define-key org-agenda-mode-map (kbd "RET") #'org-agenda-switch-to))
 
-;; ====== Evil-биндинги ======
-(defun my/setup-agenda-evil-keys ()
-  (evil-define-key 'motion org-agenda-mode-map
-    (kbd "h")   'evil-backward-char
-    (kbd "l")   'evil-forward-char
-    (kbd "j")   'org-agenda-next-item
-    (kbd "k")   'org-agenda-previous-item
-    (kbd "t")   'org-agenda-todo
-    (kbd "I")   'org-agenda-clock-in
-    (kbd "O")   'org-agenda-clock-out
-    (kbd "s")   'org-agenda-schedule
-    (kbd "d")   'org-agenda-deadline
-    (kbd "c")   'org-capture
-    (kbd "q")   'org-agenda-quit
-    (kbd "r")   'org-agenda-redo
-    (kbd "RET") 'org-agenda-switch-to))
-
-(add-hook 'org-agenda-mode-hook #'my/setup-agenda-evil-keys)
+(add-hook 'org-agenda-mode-hook #'my/setup-agenda-keys)
 
 ;; ====== Кастомные команды ======
 (setq org-agenda-custom-commands

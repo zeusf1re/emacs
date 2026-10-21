@@ -65,7 +65,6 @@
 (setq custom-file (expand-file-name "lisp/setup-auto-custom.el" user-emacs-directory))
 (load custom-file :no-error-if-file-is-missing)
 
-(require 'setup-evil)
 (require 'setup-ui)
 (require 'setup-completion)
 (require 'setup-lsp)
@@ -87,3 +86,4 @@
 (require 'setup-dired)
 (require 'setup-magit)
 (require 'setup-custom)
+(require 'setup-meow)

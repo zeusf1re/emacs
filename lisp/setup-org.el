@@ -84,20 +84,19 @@
 (defun my/org-ret-dwim ()
   "Smart RET: follows links, toggles checkboxes, or folds headings."
   (interactive)
-  (let ((element (org-element-context)))
-    (cond
-     ((eq major-mode 'sqlite-mode)
-      (call-interactively 'sqlite-mode-list-data))
-     ((org-at-item-checkbox-p) (org-toggle-checkbox))
-     ((eq 'link (org-element-type element)) (org-open-at-point-global))
-     ((org-at-heading-p) (org-cycle))
-     (t (evil-next-line)))))
+  (if (bound-and-true-p meow-insert-mode)
+      (org-return)
+    (let ((element (org-element-context)))
+      (cond
+       ((eq major-mode 'sqlite-mode)
+        (call-interactively 'sqlite-mode-list-data))
+       ((org-at-item-checkbox-p) (org-toggle-checkbox))
+       ((eq 'link (org-element-type element)) (org-open-at-point-global))
+       ((org-at-heading-p) (org-cycle))
+       (t (next-line))))))
 
-(with-eval-after-load 'evil
-  (with-eval-after-load 'org
-    (evil-define-key 'normal org-mode-map (kbd "RET") 'my/org-ret-dwim)
-    (evil-define-key 'insert org-mode-map (kbd "RET") 'org-return)
-    (evil-define-key 'normal org-mode-map (kbd "t") #'org-todo)))
+(define-key org-mode-map (kbd "RET") #'my/org-ret-dwim)
+(define-key org-mode-map (kbd "t") #'org-todo)
 
 (use-package org-present
   :ensure t
@@ -127,12 +126,7 @@
               (org-display-inline-images)
               (org-present-hide-cursor)
               (setq-local face-remapping-alist '((default (:height 1.3) default)))
-              (display-line-numbers-mode -1)
-              (when (featurep 'evil)
-                (evil-local-set-key 'normal (kbd "<left>")  'org-present-prev)
-                (evil-local-set-key 'normal (kbd "<right>") 'org-present-next)
-                (evil-local-set-key 'normal (kbd "<up>")    'org-present-prev)
-                (evil-local-set-key 'normal (kbd "<down>")  'org-present-next))))
+              (display-line-numbers-mode -1)))
 
   (add-hook 'org-present-mode-quit-hook
             (lambda ()
@@ -146,23 +140,19 @@
   :ensure t
   :defer t
   :config
-      (setq org-tree-slide-skip-outline-level 2)
+  (setq org-tree-slide-skip-outline-level 2)
 
-      (define-key org-tree-slide-mode-map (kbd "<up>") nil)
-  (define-key org-tree-slide-mode-map (kbd "<down>") nil)
+  (define-key org-tree-slide-mode-map (kbd "<left>")  #'org-tree-slide-move-previous-tree)
+  (define-key org-tree-slide-mode-map (kbd "<right>") #'org-tree-slide-move-next-tree)
+  (define-key org-tree-slide-mode-map (kbd "<up>")    #'previous-line)
+  (define-key org-tree-slide-mode-map (kbd "<down>")  #'next-line)
+  (define-key org-tree-slide-mode-map (kbd "n")       #'org-tree-slide-move-next-tree)
+  (define-key org-tree-slide-mode-map (kbd "p")       #'org-tree-slide-move-previous-tree)
 
-      (define-key org-tree-slide-mode-map (kbd "n") 'org-tree-slide-move-next-tree)
-  (define-key org-tree-slide-mode-map (kbd "p") 'org-tree-slide-move-previous-tree)
-
-    (add-hook 'org-tree-slide-play-hook
+  (add-hook 'org-tree-slide-play-hook
             (lambda ()
-                            (setq-local face-remapping-alist '((default (:height 1.5) default)))
-              (display-line-numbers-mode -1)
-                                                        (when (featurep 'evil)
-                (evil-local-set-key 'normal (kbd "<left>")  'org-tree-slide-move-previous-tree)
-                (evil-local-set-key 'normal (kbd "<right>") 'org-tree-slide-move-next-tree)
-                (evil-local-set-key 'normal (kbd "<up>")    'previous-line)
-                (evil-local-set-key 'normal (kbd "<down>")  'next-line))))
+              (setq-local face-remapping-alist '((default (:height 1.5) default)))
+              (display-line-numbers-mode -1)))
 
   (add-hook 'org-tree-slide-stop-hook
             (lambda ()
