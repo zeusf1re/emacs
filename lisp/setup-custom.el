@@ -43,17 +43,17 @@ Does not kill the org-roam side buffer (`*org-roam*')."
           (setq count (1+ count)))))
     (message "Killed %d org-roam buffer(s)" count)))
 
-(defun my/kill-magit-buffers ()
-  "Kill all Magit buffers."
+(defun my/kill-all-magit-buffers ()
+  "Kill all Magit-related buffers (status, diffs, logs, processes, etc.)."
   (interactive)
-  (let ((roam-dir (file-truename org-roam-directory))
-        (count 0))
+  (let ((count 0))
     (dolist (buf (buffer-list))
       (with-current-buffer buf
-        (when (and buffer-file-name
-                   (string-prefix-p roam-dir (file-truename buffer-file-name)))
+        ;; Проверяем, что это Magit-буфер либо по имени, либо по major-mode
+        (when (or (string-prefix-p "*magit" (buffer-name buf))
+                  (and major-mode 
+                       (string-prefix-p "magit-" (symbol-name major-mode))))
           (kill-buffer buf)
           (setq count (1+ count)))))
-    (message "Killed %d org-roam buffer(s)" count)))
-
+    (message "Killed %d Magit buffer(s)" count)))
 (provide 'setup-custom)

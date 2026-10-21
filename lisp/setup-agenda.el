@@ -86,4 +86,5 @@
      '(org-scheduled ((t (:foreground "#98BB6C"))))
 
      ))
+(setq org-agenda-tags-column -110)
 (provide 'setup-agenda)

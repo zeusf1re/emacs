@@ -77,6 +77,7 @@
     "a o" 'org-clock-out
     "a l" 'org-clock-in-last
     "a n" 'org-add-note
+    "a q" 'org-set-tags-command
 
 
     "h b" 'describe-bindings
@@ -92,6 +93,7 @@
     "d"   'dashboard-open
 
     "g s" 'magit-status
+    "g k" 'magit-status
 
     "r f f" 'org-roam-node-find
     "r f t" 'my/org-roam-node-find-by-tag
@@ -121,4 +123,9 @@
 
 (global-set-key [escape] 'keyboard-escape-quit)
 
+(use-package evil-commentary
+  :ensure t
+  :after evil
+  :config
+  (evil-commentary-mode 1))
 (provide 'setup-evil)

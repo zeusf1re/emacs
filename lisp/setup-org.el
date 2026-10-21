@@ -250,5 +250,64 @@
   (setq org-fontify-done-headline nil)
   )
 
+;; ================= plans.org autosort ================
+;; ====== Автоматический перенос DONE задач в секцию "Уже сделано" ======
+;; ====== Автоматический перенос DONE задач в секцию "Уже сделано" ======
+(defun my/org-move-done-to-bottom ()
+  "Move a task to the end of the '* Уже сделано :done:' section when marked DONE."
+  (when (equal org-state "DONE")
+    (let ((task-marker (point-marker)))
+      (run-at-time 0.1 nil
+                   (lambda (marker)
+                     (when (marker-buffer marker)
+                       (with-current-buffer (marker-buffer marker)
+                         (save-excursion
+                           (goto-char marker)
+                           (when (org-at-heading-p)
+                             (org-back-to-heading t)
+                             ;; Проверяем, не в этой ли секции мы уже находимся
+                             (let ((parent-heading
+                                    (save-excursion
+                                      (ignore-errors
+                                        (org-up-heading-safe)
+                                        (org-get-heading t t t t)))))
+                               (unless (and parent-heading 
+                                            (string-match-p "Уже сделано" parent-heading))
+                                 
+                                 ;; Ищем секцию по тегу :done: или по названию
+                                 (let ((target-marker
+                                        (save-excursion
+                                          (goto-char (point-min))
+                                          (when (or (re-search-forward "^\\*+ .*:done:" nil t)
+                                                    (re-search-forward "^\\*+ Уже сделано" nil t))
+                                            ;; Так как секция всегда в конце, прыгаем в конец буфера
+                                            (goto-char (point-max))
+                                            (copy-marker (point))))))
+                                   
+                                   (if (marker-position target-marker)
+                                       (progn
+                                         ;; 1. Вырезаем задачу
+                                         (org-cut-subtree)
+                                         ;; 2. Идем в конец файла и вставляем как уровень 2 (**)
+                                         (goto-char target-marker)
+                                         (unless (bolp) (newline))
+                                         (org-paste-subtree 2)
+                                         (set-marker target-marker nil)
+                                         
+                                         ;; 3. Сворачиваем секцию "Уже сделано"
+                                         (save-excursion
+                                           (goto-char (point-min))
+                                           (when (or (re-search-forward "^\\*+ .*:done:" nil t)
+                                                     (re-search-forward "^\\*+ Уже сделано" nil t))
+                                             (org-back-to-heading t)
+                                             (org-fold-hide-subtree)))
+                                             
+                                         (message "Task moved to 'Уже сделано' and section folded."))
+                                     (message "Warning: Section with tag ':done:' or name 'Уже сделано' not found.")))))))))
+                     (set-marker marker nil))
+                   task-marker))))
+(add-hook 'org-after-todo-state-change-hook #'my/org-move-done-to-bottom)
+;; ================= plans.org autosort ================
+
 (provide 'setup-org)
 

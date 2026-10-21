@@ -59,6 +59,23 @@
   (global-flycheck-inline-mode)
   (setq flycheck-display-errors-delay 0.1))
 
+;; ================= TABS: 4 SPACES =================
+(setq-default c-basic-offset 4    ; Отступ в 4 пробела
+              tab-width 4         ; Ширина таба = 4
+              indent-tabs-mode nil) ; Использовать пробелы, а не символы таба (стандарт для C)
+
+;; Гарантируем, что стиль Emacs не перебьет наши настройки
+(setq c-default-style "user")
+
+;; Добавляем локальные настройки при входе в режим
+(defun my/c-mode-setup ()
+  (setq-local c-basic-offset 4)
+  (setq-local tab-width 4)
+  (setq-local indent-tabs-mode nil))
+(add-hook 'c-mode-hook #'my/c-mode-setup)
+(add-hook 'c++-mode-hook #'my/c-mode-setup)
+;; ================= TABS: 4 SPACES =================
+
 (use-package clang-format
   :ensure t
   :commands clang-format-region

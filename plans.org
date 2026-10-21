@@ -3,25 +3,27 @@
 #+FILETAGS: :emacs:config:
 #+OPTIONS: toc:1 num:nil ^:nil
 
-* Активные задачи :active:
-** TODO make todo box shorter in height                        :fonts:org:
+* Активные задачи                                                    :active:
+** TODO tab 4 spaces in C                                              :c:
+- Note taken on [2026-10-19 Mon 00:29] \\
+  I did smth, but it works badly, need do continue to work on that
+** TODO Сapture template                                          :agenda:
+Сделать либо все в активные задачи, либо на выбор. В emacs/plans.**
+org TODO Clear "Urgent" section 
+** TODO Clear "Urgent" section                                    :agenda:
+* Бэклог и идеи                                                     :backlog:
+** TODO Попробовать vertico-multiform                         :completion:
+
+* Архивчик :done:
+** DONE Изучить org-super-agenda                                   :agenda:
+** DONE gc -> comment                                              :keybind:
+** DONE my/kill-all-magit-buffers                            :buffers:magit:
+** DONE make todo box shorter in height                          :fonts:org:
+- Note taken on [2026-10-19 Mon 00:28] \\
+  Didn't do anything, Im glad with what I have now.
 ** DONE t - toggle TODO/DONE                                           :org:
-** TODO tag alignment :org:
-** DONE Fonts in agenda view
+** DONE tag alignment                                                  :org:
+** DONE Fonts in agenda view :ui:agenda:
 ** DONE agenda-views                                              :agenda:
 So-so, but okey for now.
-
-** TODO tab 4 spaces in C                                            :c:
-** TODO gc -> comment                                                :keybind:
-** TODO my/kill-all-magit-buffers :buffers:magit:
-** TODO Сapture template                                          :agenda:
-Сделать либо все в активные задачи, либо на выбор. В emacs/plans.org
-
-** TODO Autosort =done= tasks                                   :agenda:org:
-* Бэклог и идеи                                                     :backlog:
-** DONE Изучить org-super-agenda                                    :agenda:
-** TODO Попробовать vertico-multiform                                 :completion:
-
-* Готово
-** DONE make agenda show 7 days further after current day
-** DONE babel in org-mode in code(SRC) segments is not working with python
+** DONE Autosort =done= tasks                                     :agenda:org:
