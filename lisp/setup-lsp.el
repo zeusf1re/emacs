@@ -22,10 +22,10 @@
     (set-face-attribute 'lsp-face-semhl-function nil :background nil)))
 
 (with-eval-after-load 'lsp-mode
-  (define-key lsp-mode-map (kbd "g d") #'lsp-find-definition)
-  (define-key lsp-mode-map (kbd "g r") #'lsp-find-references)
-  (define-key lsp-mode-map (kbd "K")   #'lsp-ui-doc-show)
-
+  ;; «g d», «g r» и «K» перенесены в нормальный режим Kakoune
+  ;; (см. lisp/setup-kakoune.el): в lsp-mode-map эти последовательности
+  ;; перекрывали бы набор букв «g»/«K» в режиме вставки, а в normal-режиме
+  ;; ryo-modal их всё равно перехватывает раньше.
   (setq lsp-disabled-clients '(semgrep-ls pyls ty-ls ruff pylsp))
 
   (lsp-register-client

@@ -86,4 +86,4 @@
 (require 'setup-dired)
 (require 'setup-magit)
 (require 'setup-custom)
-(require 'setup-meow)
+(require 'setup-kakoune)

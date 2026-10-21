@@ -57,6 +57,7 @@
 
 (defun my/typst--refresh-pdf (&rest _)
   "Revert preview PDF buffer in place, безопасно к гонкам."
+  (interactive)
   (let ((buf (my/typst--pdf-buffer)))
     (when buf
       (with-current-buffer buf

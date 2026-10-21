@@ -82,9 +82,11 @@
   (org-latex-preview '(16)))
 
 (defun my/org-ret-dwim ()
-  "Smart RET: follows links, toggles checkboxes, or folds headings."
+  "Smart RET: follows links, toggles checkboxes, or folds headings.
+В нормальном режиме Kakoune (ryo-modal-mode) — dwim-логика,
+в режиме вставки — обычный перевод строки."
   (interactive)
-  (if (bound-and-true-p meow-insert-mode)
+  (if (not (bound-and-true-p ryo-modal-mode))
       (org-return)
     (let ((element (org-element-context)))
       (cond
@@ -95,8 +97,12 @@
        ((org-at-heading-p) (org-cycle))
        (t (next-line))))))
 
+;; RET работает в обоих режимах: в normal (ryo-modal-mode) ро-карта не
+;; биндит RET, он попадает сюда; в insert проверка внутри функции
+;; возвращает org-return. Биндинг «t» → org-todo перенесён в
+;; ryo-modal (см. setup-kakoune.el): в org-mode-map он ломал набор
+;; буквы «t» в режиме вставки.
 (define-key org-mode-map (kbd "RET") #'my/org-ret-dwim)
-(define-key org-mode-map (kbd "t") #'org-todo)
 
 (use-package org-present
   :ensure t
