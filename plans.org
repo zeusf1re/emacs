@@ -4,13 +4,54 @@
 #+OPTIONS: toc:1 num:nil ^:nil
 
 * Активные задачи                                                    :active:
-** TODO tab 4 spaces in C                                              :c:
-- Note taken on [2026-10-19 Mon 00:29] \\
-  I did smth, but it works badly, need do continue to work on that
 ** TODO Сapture template                                          :agenda:
 Сделать либо все в активные задачи, либо на выбор. В emacs/plans.**
 org TODO Clear "Urgent" section 
+
+Функция, которая добавляет какое-то задание.
+- предлагает emacs/personal/uni
+  + Если Personal то добавляет задание с =*= уровнем, без всяких преднастроек =todo, scheduled, ...= в дефолтный файл ~/org/tasks.org (туда и так щас capture по дефолту записывает)
+  + Если Emacs, то в файл ~/.config/emacs/plans.org в первый хедер "Активные задачи", соответсвенно добавить туда =** TODO= заголовок
+  + Если uni, то спросить в какой файл. У меня есть org-roam, там можно сортировку по тегу "discipline"(есть кастомная функция для поиска нодов по тегу). В этом файле дописать задачу в первый хедер, называется он по разному в файлах, но всегда первый, пример:
+
+
+    #+begin_example 
+
+    :PROPERTIES:
+    :ID:       905E9CA8-FC5F-4B69-A93A-66E220BE593A
+    :END:
+    #+TITLE: Schemes
+    #+category: Schemes
+    #+filetags: :discipline:
+
+    * Задачи
+    ** Событие: Лабораторная работа :event:
+    <2026-10-15 Thu 14:05 +2w> 
+
+    ** Событие: написать рк :event:test:
+    <2026-10-16 Fri 14:05>
+
+    ** DONE Подготовиться к РК                                            :task:test:
+    SCHEDULED: <2026-10-15 Thu 23:00> 
+    :LOGBOOK:
+    CLOCK: [2026-10-15 Thu 23:11]--[2026-10-16 Fri 00:34] =>  1:23
+    :END:
+
+    Разбор РК можно найти в ТГ. Леша сегодня уже писал.
+
+    Все todo тоже добавлю сам.
+
+    * Materials
+    - [[id:EE520EDB-7485-4796-A24B-2171D2EF7737][РК1: подготовка]] - не очень полезная ссылка, там особо ничего нет.
+    -
+
+#+end_example
+  
+** TODO tab 4 spaces in C                                              :c:
+- Note taken on [2026-10-19 Mon 00:29] \\
+  I did smth, but it works badly, need do continue to work on that
 ** TODO Clear "Urgent" section                                    :agenda:
+** TODO Monkeytype                                             :emacs:fun:
 * Бэклог и идеи                                                     :backlog:
 ** TODO Попробовать vertico-multiform                         :completion:
 

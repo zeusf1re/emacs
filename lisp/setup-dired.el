@@ -54,7 +54,8 @@
       "p" 'dired-ranger-paste
       "d" 'dired-do-delete
       "i" 'wdired-change-to-wdired-mode
-      "m" 'dired-mark)
+      "m" 'dired-mark
+      "w" 'dirvish-copy-file-path)
     (evil-define-key 'visual dired-mode-map
       "m" 'dired-mark)))
 

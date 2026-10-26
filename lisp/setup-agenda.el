@@ -42,7 +42,9 @@
     (kbd "c")   'org-capture
     (kbd "q")   'org-agenda-quit
     (kbd "r")   'org-agenda-redo
-    (kbd "RET") 'org-agenda-switch-to))
+    (kbd "RET") 'org-agenda-switch-to
+    (kbd "/") 'org-agenda-filter-by-tag
+    ))
 
 (add-hook 'org-agenda-mode-hook #'my/setup-agenda-evil-keys)
 
@@ -86,5 +88,6 @@
      '(org-scheduled ((t (:foreground "#98BB6C"))))
 
      ))
+(setq org-complete-tags-always-offer-all-agenda-tags t)
 (setq org-agenda-tags-column -110)
 (provide 'setup-agenda)

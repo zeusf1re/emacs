@@ -46,10 +46,10 @@
                             ,my/org-roam-lecture-header)
          :unnarrowed t)
 
-        ("v" "discipline" plain "%?"
-        :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                            "#+TITLE: ${title}\n#+category: ${title}\n#+filetags: :discipline:\n")
-        :unnarrowed t)
+("v" "discipline" plain "%?"
+ :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                     ":PROPERTIES:\n:CATEGORY: ${title}\n:END:\n#+TITLE: ${title}\n#+filetags: :discipline:\n")
+ :unnarrowed t)
         ))
   ;; Шаблон для ежедневной заметки
   (setq org-roam-dailies-capture-templates

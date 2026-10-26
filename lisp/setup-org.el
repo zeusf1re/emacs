@@ -203,7 +203,7 @@
 (setq org-modern-replace-stars "○○◇◇✳◆□")
 
   ;; --- Чекбоксы ---
-(setq org-modern-checkbox '((88 . "☑") (45 . #("□–" 0 2 (composition (0 2 [9633 8211]))))
+(setq org-modern-checkbox '((88 . "☑") (45 . "☒" )
  (32 . "□")))
 
   ;; --- Убираем лишнее в блоках кода ---

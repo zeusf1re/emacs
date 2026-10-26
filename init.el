@@ -57,7 +57,6 @@
 
 (setq initial-scratch-message nil)
 (setq initial-major-mode 'org-mode)
-
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
 (setq-default truncate-lines t)
@@ -87,3 +86,4 @@
 (require 'setup-dired)
 (require 'setup-magit)
 (require 'setup-custom)
+(require 'setup-type)
