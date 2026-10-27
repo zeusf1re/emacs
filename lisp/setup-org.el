@@ -221,7 +221,10 @@
      '(org-verbatim ((t (:foreground "#b6927b" :background nil))))
 
      ;; Статус DONE
-     '(org-done ((t (:foreground "#98BB6C" :strike-through nil :weight semi-bold)))))))
+     '(org-done ((t (:foreground "#98BB6C" :strike-through nil :weight semi-bold))))
+
+     ;; '(link ((t (:foreground "#2D4F67" )))) - норм, но темноват (цвет тэгов, если что)
+     )))
 
 (with-eval-after-load 'org-modern
   (custom-set-faces

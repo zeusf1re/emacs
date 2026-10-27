@@ -90,4 +90,53 @@
      ))
 (setq org-complete-tags-always-offer-all-agenda-tags t)
 (setq org-agenda-tags-column -110)
+
+;; 1. Вспомогательная функция для выбора узла (как раньше, но с защитой от nil)
+(defun my/org-roam-read-node-by-tag (tag)
+  "Выбрать узел org-roam только с TAG (без открытия файла)."
+  (let* ((nodes (seq-filter (lambda (n) (member tag (org-roam-node-tags n)))
+                            (org-roam-node-list)))
+         (completions (mapcar (lambda (n) (cons (org-roam-node-title n) n)) nodes)))
+    (unless nodes
+      (user-error "Не найдено ни одного узла с тегом '%s'" tag))
+    (let ((choice (completing-read (format "Node (%s): " tag) completions nil t)))
+      (cdr (assoc choice completions)))))
+
+(defun my/org-roam-uni-target ()
+  "Запросить узел с тегом discipline и вернуть путь к его файлу."
+  (let* ((node (my/org-roam-read-node-by-tag "discipline"))
+         (file (org-roam-node-file node)))
+    (unless file
+      (user-error "У выбранного узла нет привязанного файла"))
+    file))
+
+;; 3. Функция для перехода к первому заголовку (без изменений)
+(defun my/goto-first-heading ()
+  "Перейти к первому заголовку в текущем буфере."
+  (goto-char (point-min))
+  (if (re-search-forward org-outline-regexp-bol nil t)
+      (goto-char (match-beginning 0))
+    (goto-char (point-max))))
+
+;; 4. Набор шаблонов
+(defvar my/agenda-capture-templates
+  '(("e" "Emacs Task" entry
+     (file+headline "~/.config/emacs/plans.org" "Активные задачи")
+     "** TODO %?\n")
+    ("p" "Personal Task" entry
+     (file "~/org/tasks.org")
+     "* %?\n")
+    ("u" "Uni Task" entry
+     (file+function my/org-roam-uni-target my/goto-first-heading)
+     "** TODO %?\n")))
+
+;; 5. Обёртка, которая показывает меню выбора шаблонов
+(defun my/agenda-capture-smart ()
+  "Вызов org-capture с выбором одного из трёх шаблонов."
+  (interactive)
+  (let ((org-capture-templates my/agenda-capture-templates))
+    (org-capture)))
+
+
+
 (provide 'setup-agenda)

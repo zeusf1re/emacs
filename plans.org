@@ -4,7 +4,28 @@
 #+OPTIONS: toc:1 num:nil ^:nil
 
 * Активные задачи                                                    :active:
-** TODO Сapture template                                          :agenda:
+** TODO tab 4 spaces in C                                              :c:
+- Note taken on [2026-10-19 Mon 00:29] \\
+  I did smth, but it works badly, need do continue to work on that
+** TODO Clear "Urgent" section                                    :agenda:
+** TODO Monkeytype                                             :emacs:fun:
+* Бэклог и идеи                                                     :backlog:
+** TODO Попробовать vertico-multiform                         :completion:
+
+* Архивчик :done:
+** DONE Изучить org-super-agenda                                   :agenda:
+** DONE gc -> comment                                              :keybind:
+** DONE my/kill-all-magit-buffers                            :buffers:magit:
+** DONE make todo box shorter in height                          :fonts:org:
+- Note taken on [2026-10-19 Mon 00:28] \\
+  Didn't do anything, Im glad with what I have now.
+** DONE t - toggle TODO/DONE                                           :org:
+** DONE tag alignment                                                  :org:
+** DONE Fonts in agenda view :ui:agenda:
+** DONE agenda-views                                              :agenda:
+So-so, but okey for now.
+** DONE Autosort =done= tasks                                     :agenda:org:
+** DONE Сapture template                                            :agenda:
 Сделать либо все в активные задачи, либо на выбор. В emacs/plans.**
 org TODO Clear "Urgent" section 
 
@@ -47,24 +68,5 @@ org TODO Clear "Urgent" section
 
 #+end_example
   
-** TODO tab 4 spaces in C                                              :c:
-- Note taken on [2026-10-19 Mon 00:29] \\
-  I did smth, but it works badly, need do continue to work on that
-** TODO Clear "Urgent" section                                    :agenda:
-** TODO Monkeytype                                             :emacs:fun:
-* Бэклог и идеи                                                     :backlog:
-** TODO Попробовать vertico-multiform                         :completion:
-
-* Архивчик :done:
-** DONE Изучить org-super-agenda                                   :agenda:
-** DONE gc -> comment                                              :keybind:
-** DONE my/kill-all-magit-buffers                            :buffers:magit:
-** DONE make todo box shorter in height                          :fonts:org:
-- Note taken on [2026-10-19 Mon 00:28] \\
-  Didn't do anything, Im glad with what I have now.
-** DONE t - toggle TODO/DONE                                           :org:
-** DONE tag alignment                                                  :org:
-** DONE Fonts in agenda view :ui:agenda:
-** DONE agenda-views                                              :agenda:
-So-so, but okey for now.
-** DONE Autosort =done= tasks                                     :agenda:org:
+** DONE test task emacs seichas
+<2026-10-27 Tue 18:09>

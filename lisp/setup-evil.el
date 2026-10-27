@@ -78,7 +78,7 @@
     "a l" 'org-clock-in-last
     "a n" 'org-add-note
     "a q" 'org-set-tags-command
-
+    "a k" 'my/agenda-capture-smart
 
     "h b" 'describe-bindings
     "h k" 'describe-key
@@ -92,8 +92,9 @@
 
     "d"   'dashboard-open
 
+    "m s" 'magit-status
     "g s" 'magit-status
-    "g k" 'magit-status
+    "m k" 'my/kill-all-magit-buffers
 
     "r f f" 'org-roam-node-find
     "r f t" 'my/org-roam-node-find-by-tag
@@ -128,4 +129,5 @@
   :after evil
   :config
   (evil-commentary-mode 1))
+
 (provide 'setup-evil)
