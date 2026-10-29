@@ -87,3 +87,4 @@
 (require 'setup-magit)
 (require 'setup-custom)
 (require 'setup-type)
+(require 'setup-calendar)

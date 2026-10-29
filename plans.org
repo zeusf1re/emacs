@@ -7,8 +7,8 @@
 ** TODO tab 4 spaces in C                                              :c:
 - Note taken on [2026-10-19 Mon 00:29] \\
   I did smth, but it works badly, need do continue to work on that
-** TODO Clear "Urgent" section                                    :agenda:
 ** TODO Monkeytype                                             :emacs:fun:
+** TODO Email :connection:
 * Бэклог и идеи                                                     :backlog:
 ** TODO Попробовать vertico-multiform                         :completion:
 
@@ -70,3 +70,6 @@ org TODO Clear "Urgent" section
   
 ** DONE test task emacs seichas
 <2026-10-27 Tue 18:09>
+** DONE Убрать задачи d. if done                                    :agenda:
+** DONE Sync calendars                                            :calendar:
+** DONE Clear "Urgent" section                                      :agenda:

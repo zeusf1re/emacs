@@ -80,16 +80,28 @@
   "Обновить все формулы в буфере"
   (interactive)
   (org-latex-preview '(16)))
-
+(defun my/org-toggle-checkbox-3way ()
+  "Cycle checkbox: [ ] -> [X] -> [-] -> [ ]."
+  (interactive)
+  (let ((state (org-element-property :checkbox (org-element-context))))
+    (pcase state
+      ('off   (org-toggle-checkbox))        ; [ ] -> [X]
+      ('on    (org-toggle-checkbox '(16)))  ; [X] -> [-]
+      ('trans                               ; [-] -> [ ]
+       (org-toggle-checkbox '(4))           ; удалить
+       (org-toggle-checkbox '(4))))))       ; добавить заново
 (defun my/org-ret-dwim ()
   "Smart RET: follows links, toggles checkboxes, or folds headings."
   (interactive)
-  (let ((element (org-element-context)))
+  (let* ((element (org-element-context))
+         (item    (org-element-lineage element '(item) t)))
     (cond
      ((eq major-mode 'sqlite-mode)
       (call-interactively 'sqlite-mode-list-data))
-     ((org-at-item-checkbox-p) (org-toggle-checkbox))
-     ((eq 'link (org-element-type element)) (org-open-at-point-global))
+     ((and item (org-element-property :checkbox item))
+      (my/org-toggle-checkbox-3way))
+     ((eq 'link (org-element-type element))
+      (org-open-at-point-global))
      ((org-at-heading-p) (org-cycle))
      (t (evil-next-line)))))
 

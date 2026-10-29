@@ -50,16 +50,18 @@
 
 ;; ====== Кастомные команды ======
 (setq org-agenda-custom-commands
-      '(("d" "📅 День"
+      '(("d" "📅 день"
          ((agenda ""
                   ((org-agenda-span 1)
                    (org-agenda-start-day nil)
-                   (org-agenda-overriding-header "📅 Сегодня")))
+                   (org-agenda-overriding-header "📅 сегодня")))
 
           (agenda ""
                   ((org-agenda-span 2)
                    (org-agenda-start-day "+1")
-                   (org-agenda-tag-filter-preset '("-event"))
+                   ;; ВНИМАНИЕ: этот фильтр здесь не сработает для отдельного блока, 
+                   ;; но об этом ниже
+                   (org-agenda-tag-filter-preset '("-event")) 
                    (org-agenda-overriding-header "⏭️ Следующие 2 дня")))
 
           (todo "TODO"
@@ -67,14 +69,32 @@
                  (org-agenda-todo-ignore-deadlines nil)
                  (org-agenda-overriding-header "⏭️ Все TODO")))
 
-          (tags "urgent"
+          (tags-todo "urgent"
                 ((org-agenda-overriding-header "🔥 Urgent")))))
 
         ("e" "🛠️ Emacs Tasks"
          ((todo "TODO"
                 ((org-agenda-files (list "~/.config/emacs/plans.org"))
                  (org-agenda-hide-tags-regexp (regexp-opt '("active" "emacs" "config")))
-                 (org-agenda-overriding-header "Ongoing tasks")))))))
+                 (org-agenda-overriding-header "Ongoing tasks")))))
+
+        ("g" "Events"
+         ((agenda ""
+                  ((org-agenda-span 7) 
+                   (org-agenda-start-day nil)
+                   (org-agenda-overriding-header "All Events for next 7 days"))))
+         ((org-agenda-tag-filter-preset '("+event")))) 
+
+        ("G" "Tasks"
+         ((agenda ""
+                  ((org-agenda-span 7) 
+                   (org-agenda-start-day nil)
+                   (org-agenda-overriding-header "All tasks for next 7 days"))))
+         ((org-agenda-tag-filter-preset '("-event")))) 
+
+        ("u" "Urgent"
+         ((tags-todo "urgent")))
+        ))
 
   (with-eval-after-load 'org-agenda
     (custom-set-faces
@@ -137,6 +157,21 @@
   (let ((org-capture-templates my/agenda-capture-templates))
     (org-capture)))
 
+;;(setq org-agenda-skip-deadline-if-done t
+;;      org-agenda-skip-scheduled-if-done t)  ; я пока думаю на счет этого.
 
+;; (use-package ox-icalendar
+;;   :after org
+;;   :config
+;;   ;; Куда сохранять объединённый .ics файл
+;;   (setq org-icalendar-combined-agenda-file "~/org-agenda-export.ics")
+;;   ;; Включать задачи со сроками (deadline) и запланированные (scheduled)
+;;   (setq org-icalendar-include-todo t)
+;;   ;; Исключать теги, которые не должны попадать в календарь (опционально)
+;;   (setq org-icalendar-exclude-tags '("noexport")))
 
+;; (add-hook 'after-save-hook
+;;          (lambda ()
+;;            (when (org-mode 'derived-mode-p)
+;;              (org-icalendar-combine-agenda-files))))
 (provide 'setup-agenda)

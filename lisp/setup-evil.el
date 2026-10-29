@@ -48,7 +48,7 @@
     "w +" 'enlarge-window
     "w -" 'shrink-window
 
-    "q q" 'evil-quit-all
+    "q q" 'save-buffers-kill-emacs
 
     "f g" 'consult-find
     "f s" 'consult-ripgrep

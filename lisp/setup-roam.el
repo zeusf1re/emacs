@@ -134,4 +134,11 @@
     (org-roam-node-find nil nil
                         (lambda (node)
                           (member tag (org-roam-node-tags node))))))
+(setq org-roam-db-node-include-function
+      (lambda ()
+        (not (org-entry-get (point) "ROAM_EXCLUDE"))))
+(setq org-roam-db-node-include-function
+      (lambda ()
+        "Индексировать только файлы, игнорируя все заголовки внутри них."
+        (not (org-at-heading-p))))
 (provide 'setup-roam)
