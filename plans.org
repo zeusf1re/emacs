@@ -4,13 +4,24 @@
 #+OPTIONS: toc:1 num:nil ^:nil
 
 * Активные задачи                                                    :active:
-** TODO tab 4 spaces in C                                              :c:
+** TODO [#C] tab 4 spaces in C                                         :c:
 - Note taken on [2026-10-19 Mon 00:29] \\
   I did smth, but it works badly, need do continue to work on that
-** TODO Monkeytype                                             :emacs:fun:
-** TODO Email :connection:
+** TODO [#C] Monkeytype                                        :emacs:fun:
+** TODO [#B] Email                                            :connection:
+** TODO [#B] Evil-mode в compilation minibuffer                     :evil:
+** TODO [#C] Исправить org-roam-ui                             :task:roam:
+** TODO [#C] Backlinks buffer сделать меньше                        :roam:
+** TODO [#A] Set effort in agenda                                 :agenda:
+** TODO [#A] Set priority in org and agenda                   :org:agenda:
+** TODO [#A] Change smart capture to Inbox in personal            :agenda:
+
+    ("p" "Personal Task" entry
+     (file "~/org/tasks.org")
+     "* %?\n")
+** TODO completed tasks in Dailies                           :roam:agenda:
 * Бэклог и идеи                                                     :backlog:
-** TODO Попробовать vertico-multiform                         :completion:
+** TODO [#C] Попробовать vertico-multiform                    :completion:
 
 * Архивчик :done:
 ** DONE Изучить org-super-agenda                                   :agenda:

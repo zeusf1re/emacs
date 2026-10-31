@@ -323,6 +323,14 @@
                    task-marker))))
 (add-hook 'org-after-todo-state-change-hook #'my/org-move-done-to-bottom)
 ;; ================= plans.org autosort ================
-
+(use-package org-tidy
+  :ensure t
+  :hook (org-mode . org-tidy-mode)
+  :config
+  ;; Настройка стиля отображения:
+  ;; 'fringe  - скрыть и показать индикатор на полях
+  ;;  'inline;;  - скрыть и добавить символ ♯ в конце заголовка
+  ;; 'invisible - просто скрыть
+  (setq org-tidy-properties-style 'inline))
 (provide 'setup-org)
 

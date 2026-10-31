@@ -85,7 +85,7 @@
   ;; 4. Для macOS: указываем, какую утилиту использовать для работы с буфером
   (setq org-download-screenshot-method "/opt/homebrew/bin/pngpaste %s")
   :bind (("C-M-y" . org-download-clipboard) ; Удобный биндинг для вставки
-         ("C-c i i" . org-download-image))) ; Для вставки из файла
+         ("C-c i i" . org-download-image)))
 (setq org-download-annotate-function (lambda (_link) ""))
 ;;(setq org-roam-graph-exclude-matcher '("daily" "journal" "2026-")) -- чтобы вырубить дневники из графа
 

@@ -144,7 +144,7 @@
      (file+headline "~/.config/emacs/plans.org" "Активные задачи")
      "** TODO %?\n")
     ("p" "Personal Task" entry
-     (file "~/org/tasks.org")
+     (file+headline "~/org/tasks.org" "Inbox")
      "* %?\n")
     ("u" "Uni Task" entry
      (file+function my/org-roam-uni-target my/goto-first-heading)

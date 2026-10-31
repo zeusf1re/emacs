@@ -79,6 +79,7 @@
     "a n" 'org-add-note
     "a q" 'org-set-tags-command
     "a k" 'my/agenda-capture-smart
+    "a e" 'org-set-effort
 
     "h b" 'describe-bindings
     "h k" 'describe-key
@@ -111,7 +112,8 @@
     "r d T" 'org-roam-dailies-capture-tomorrow
     "r d Y" 'org-roam-dailies-capture-yesterday
     "r t" 'org-roam-tag-add
-    "r g " 'org-roam-graph
+    "r G " 'org-roam-graph
+    "r g " 'org-roam-ui-open
     "r u" 'org-roam-ui-open
     "r k" 'my/kill-org-roam-buffers
     ))
