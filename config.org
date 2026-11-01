@@ -1,0 +1,2004 @@
+#+TITLE: Emacs Configuration
+#+STARTUP: overview
+#+PROPERTY: header-args:emacs-lisp :tangle config.el :comments link
+#+OPTIONS: toc:2
+
+This file is the single source of truth for the Emacs configuration.  On
+startup, =init.el= tangles it to =config.el= with Org Babel and loads the
+result.  =early-init.el= stays a plain Emacs Lisp file because it runs before
+Org and =org-babel-load-file= are available.
+
+The old modular files are kept in =lisp.bak/= so the refactor can be rolled
+back.  Prose and comments are in English; existing code strings, identifiers,
+and docstrings are preserved as they were.
+
+* Bootstrap & Early Init
+
+=early-init.el= runs before the package system and before the first frame is
+created.  It disables the built-in package manager (Elpaca takes over later),
+removes the menu bar, tool bar, and scroll bars, starts fullscreen, and maps
+the macOS Command key to Meta while leaving Option free.  It cannot be tangled
+from this file, so it remains a separate =early-init.el=.
+
+The bootstrap below is the part of the old =init.el= that must run before any
+module: backup and auto-save locations, Elpaca itself, =use-package=
+integration, and basic editor defaults.  The module =require= calls are gone
+because every module now lives in this document.
+
+* File Backups & Auto-save
+
+Emacs normally writes =foo~= next to the edited file and lock files in the
+working directory.  Redirecting backups and auto-saves to =tmp/= keeps project
+trees and Git status clean.  Lock files are disabled completely.
+
+#+begin_src emacs-lisp :comments no
+;;; config.el --- Tangled from config.org -*- lexical-binding: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp
+(setq backup-directory-alist
+      `(("." . ,(expand-file-name "tmp/backups/" user-emacs-directory))))
+(setq auto-save-list-file-prefix
+      (expand-file-name "tmp/auto-saves/sessions/" user-emacs-directory))
+(setq auto-save-file-name-transforms
+      `((".*" ,(expand-file-name "tmp/auto-saves/" user-emacs-directory) t)))
+
+(setq create-lockfiles nil)
+#+end_src
+
+* Package Management (Elpaca)
+
+Elpaca is bootstrapped from Git on first start and then installs packages
+asynchronously.  =elpaca-use-package= makes every =use-package= form install
+through Elpaca by default, so most forms in this file do not need =:ensure t=.
+The =compat= package is pinned to GNU-devel because newer packages expect it.
+
+#+begin_src emacs-lisp
+(defvar elpaca-installer-version 0.11)
+(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                              :ref nil
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+       (build (expand-file-name "elpaca/" elpaca-builds-directory))
+       (order (cdr elpaca-order))
+       (default-directory repo))
+  (add-to-list 'load-path (if (file-exists-p build) build repo))
+  (unless (file-exists-p repo)
+    (make-directory repo t)
+    (when (< emacs-major-version 28) (require 'subr-x))
+    (condition-case-unless-debug err
+        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                 ((zerop (call-process "git" nil buffer t "clone"
+                                       (plist-get order :repo) repo)))
+                 ((zerop (call-process "git" nil buffer t "checkout"
+                                       (or (plist-get order :ref) "--"))))
+                 (emacs (concat invocation-directory invocation-name))
+                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "-batch"
+                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                 ((require 'elpaca))
+                 ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (funcall #'elpaca--format-error err)))
+      ((error) (warn "%s" err) (delete-directory elpaca-directory 'recursive))))
+  (unless (require 'elpaca-autoloads nil t)
+    (require 'elpaca)
+    (elpaca-generate-autoloads "elpaca" repo)
+    (load "./elpaca-autoloads")))
+(add-hook 'after-init-hook #'elpaca-process-queues)
+(elpaca `(,@elpaca-order))
+
+(elpaca elpaca-use-package
+  (elpaca-use-package-mode)
+  (setq elpaca-use-package-by-default t))
+(use-package compat
+  :ensure (:source "gnu-devel" :package "compat"))
+#+end_src
+
+* Core Editing Defaults
+
+These settings define the editor before any package hooks run: four-space
+indentation with spaces instead of tabs, relative line numbers, a column
+indicator, and an Org-mode scratch buffer with no startup message.  Long lines
+are truncated instead of wrapped, and the bell is disabled.
+
+#+begin_src emacs-lisp
+(setq-default
+ tab-width 4
+ indent-tabs-mode nil
+ display-line-numbers-type 'relative)
+(global-display-line-numbers-mode t)
+(column-number-mode)
+
+(setq initial-scratch-message nil)
+(setq initial-major-mode 'org-mode)
+
+(setq-default truncate-lines t)
+(setq ring-bell-function 'ignore)
+#+end_src
+
+* Custom File
+
+=custom.el= is written by Emacs' Custom interface at runtime and is not
+tangled from this document.  It was migrated verbatim from the old
+=lisp/setup-auto-custom.el= and remains the authoritative source for
+Custom-generated variables and faces.  Keeping it separate prevents Emacs from
+rewriting =config.org= behind your back.
+
+#+begin_src emacs-lisp
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(load custom-file :no-error-if-file-is-missing)
+#+end_src
+
+* Evil & Keybindings
+
+Evil provides Vim-style modal editing, and =evil-collection= extends it to
+built-in modes.  Dashboard is removed from =evil-collection= because its
+bindings conflict with the dashboard package.  =general= defines the =SPC=
+leader map used throughout the rest of the configuration.
+
+#+begin_src emacs-lisp
+(use-package evil
+  :ensure t
+  :demand t
+  :init
+  (setq evil-want-integration t)
+  (setq evil-respect-visual-line-mode t)
+  (setq evil-want-keybinding nil)
+  :config
+  (evil-mode 1))
+
+(use-package evil-collection
+  :after evil
+  :config
+  (setq evil-collection-mode-list (remove 'dashboard evil-collection-mode-list))
+  (evil-collection-init))
+
+(use-package general
+  :demand t
+  :config
+  (general-create-definer my-leader-def
+    :prefix "SPC"
+    :states '(normal visual motion)
+    :keymaps 'override)
+
+  (my-leader-def
+    "." 'find-file
+    "," 'consult-buffer
+    ":" 'execute-extended-command
+
+
+    "b b" 'switch-to-buffer
+    "b k" 'kill-current-buffer
+    "b i" 'ibuffer
+    "b B" 'ibuffer
+
+    "w q" 'delete-window
+    "w v" 'split-window-right
+    "w s" 'split-window-below
+    "w h" 'evil-window-left
+    "w j" 'evil-window-down
+    "w k" 'evil-window-up
+    "w l" 'evil-window-right
+    "w c" 'delete-window
+    "w o" 'delete
+
+    "w ." 'enlarge-window-horizontally
+    "w ," 'shrink-window-horizontally
+    "w +" 'enlarge-window
+    "w -" 'shrink-window
+
+    "q q" 'save-buffers-kill-emacs
+
+    "f g" 'consult-find
+    "f s" 'consult-ripgrep
+
+    "p p" 'projectile-switch-project
+    "p f" 'projectile-find-file
+
+    "t t" 'vterm
+    "f p" (lambda () (interactive) (find-file "~/.config/emacs/init.el"))
+
+    "c a" 'lsp-execute-code-action
+    "c r" 'lsp-rename
+    "c e" 'lsp-ui-doc-show
+    "c g d" 'lsp-find-references
+
+    "c c" 'compile
+
+    "/"   'consult-line
+
+    "a c" 'calfw-org-open-calendar
+    "a a" 'org-agenda
+    "a t" 'org-timestamp
+    "a d" 'org-deadline
+    "a s" 'org-schedule
+    "a i" 'org-clock-in
+    "a o" 'org-clock-out
+    "a l" 'org-clock-in-last
+    "a n" 'org-add-note
+    "a q" 'org-set-tags-command
+    "a k" 'my/agenda-capture-smart
+    "a e" 'org-set-effort
+
+    "h b" 'describe-bindings
+    "h k" 'describe-key
+    "h m" 'describe-mode
+    "h v" 'describe-variable
+    "h f" 'describe-function
+    "h s" 'describe-face
+
+    "o l" 'org-latex-preview
+    "o L" 'my/org-latex-preview-all
+
+    "d"   'dashboard-open
+
+    "m s" 'magit-status
+    "g s" 'magit-status
+    "m k" 'my/kill-all-magit-buffers
+
+    "r f f" 'org-roam-node-find
+    "r f t" 'my/org-roam-node-find-by-tag
+    "r i" 'org-roam-node-insert
+    "r I" 'org-roam-node-insert-immediate
+    "r c" 'org-roam-capture
+    "r l" 'org-roam-buffer-toggle
+    "r D" 'org-roam-dailies-capture-today
+    "r d d" 'org-roam-dailies-goto-today
+    "r d t" 'org-roam-dailies-goto-tomorrow
+    "r d y" 'org-roam-dailies-goto-yesterday
+    "r d D" 'org-roam-dailies-capture-today
+    "r d T" 'org-roam-dailies-capture-tomorrow
+    "r d Y" 'org-roam-dailies-capture-yesterday
+    "r t" 'org-roam-tag-add
+    "r G " 'org-roam-graph
+    "r g " 'org-roam-ui-open
+    "r u" 'org-roam-ui-open
+    "r k" 'my/kill-org-roam-buffers
+    ))
+
+(defun my-evil-syntax-fix ()
+  (modify-syntax-entry ?_ "w")
+  (modify-syntax-entry ?- "w"))
+
+(add-hook 'prog-mode-hook 'my-evil-syntax-fix)
+(add-hook 'text-mode-hook 'my-evil-syntax-fix)
+
+(global-set-key [escape] 'keyboard-escape-quit)
+
+(use-package evil-commentary
+  :ensure t
+  :after evil
+  :config
+  (evil-commentary-mode 1))
+#+end_src
+
+* UI & Theme
+
+This section controls the visual frame and the window policy.  It enables
+native fullscreen, sets FiraCode Nerd Font, loads the Kanagawa Dragon theme,
+and adds =doom-modeline=, =nerd-icons=, and delimiter highlighting.  It also
+overrides =display-buffer= so that most buffers reuse the current window;
+only whitelisted popups, LSP help, Org Roam, capture, and Magit may split the
+frame.
+
+#+begin_src emacs-lisp
+(setq ns-use-native-fullscreen t)
+
+(defun my/frame-maximize (frame)
+  "Полный fullscreen FRAME при создании."
+  (when (display-graphic-p frame)
+    (set-frame-parameter frame 'fullscreen 'fullscreen)))
+(add-hook 'after-make-frame-functions #'my/frame-maximize)
+(my/frame-maximize (selected-frame))
+
+(set-face-attribute 'default nil :font "FiraCode Nerd Font Mono" :height 200)
+
+(use-package kanagawa-themes
+  :config
+  (load-theme 'kanagawa-dragon t)
+
+  (set-face-attribute 'header-line nil :background nil :inherit 'default)
+
+  (with-eval-after-load 'lsp-headerline
+    (set-face-attribute 'lsp-headerline-breadcrumb-separator-face nil :background nil)
+    (set-face-attribute 'lsp-headerline-breadcrumb-path-face nil :background nil :weight 'bold)
+    (set-face-attribute 'lsp-headerline-breadcrumb-symbols-face nil :background nil :weight 'bold)))
+(use-package nerd-icons)
+
+;; === doom-modeline ===
+(use-package doom-modeline
+  :init (doom-modeline-mode 1)
+  :config
+  (setq doom-modeline-height 35))
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+(use-package transient
+  :ensure t)
+
+(setq scroll-margin 2
+      scroll-conservatively 101
+      scroll-preserve-screen-position t)
+
+(defvar my/popup-whitelist
+  '("\\*Help\\*"
+    "\\*Calculator\\*"
+    "\\*Calc\\*"
+    "\\*Calc Trail\\*"
+    "\\*Completions\\*"
+    "\\*compilation\\*"
+    "\\*Occur\\*"
+    "\\*grep\\*"
+    "\\*vc-.*\\*"
+    "\\*Messages\\*"
+    "\\*Warnings\\*"
+    "\\*Shell Command Output\\*"
+    ;; --- magit / transient ---
+    " \\*transient\\*"
+    "\\*transient\\*"
+    "\\*magit"
+    "\\*magit-help\\*"
+    ;; -- org-roam --
+    "\\*org-roam\\*"
+    "\\`CAPTURE"
+    ;; -- calendar --
+    "\\*Calendar\\*"
+    )
+  "Buffers matching these regexps may open in another window / split.")
+
+(defun my/display-buffer-no-split (orig buffer-or-name &optional action frame)
+  "Force display-buffer to reuse current window unless whitelisted.
+Magit and transient buffers are exempt — they manage their own
+display action (side window at the bottom)."
+  (let* ((name (if (bufferp buffer-or-name)
+                   (buffer-name buffer-or-name)
+                 (format "%s" buffer-or-name)))
+         (magit-cmd
+          (and (boundp 'real-this-command)
+               (symbolp real-this-command)
+               (string-match-p "\\`\\(magit\\|transient\\)"
+                               (symbol-name real-this-command))))
+         (whitelisted
+          (or magit-cmd
+              (seq-some (lambda (re) (string-match-p re name))
+                        my/popup-whitelist))))
+    (funcall orig buffer-or-name
+             (if whitelisted
+                 action
+               '(display-buffer-reuse-window display-buffer-same-window))
+             frame)))
+
+;; ---- popup policy ----
+(defun my/no-auto-split (&rest _) nil)
+(advice-add 'display-buffer :around #'my/display-buffer-no-split)
+(advice-add 'split-window-sensibly :override #'my/no-auto-split)
+(setq kill-buffer-query-functions nil)
+(setq kill-buffer-delete-auto-save-files nil)
+
+
+(setq confirm-kill-emacs nil          ; don't ask "really quit?"
+      kill-buffer-quit-windows nil
+      confirm-nonexistent-file-or-buffer nil
+      use-short-answers t)            ; y/n instead of yes/no
+
+;; "K"
+(add-to-list 'display-buffer-alist
+             '("\\*lsp-help\\*"
+               (display-buffer-in-side-window)
+               (side . right)
+               (slot . -1)              ; -1 = topmost slot among right-side windows
+               (window-width . 0.35)))
+
+(add-to-list 'display-buffer-alist
+             '("\\*org-roam\\*"
+               (display-buffer-in-side-window)
+               (side . bottom)
+               (slot . 1)
+               (window-height . 0.40)
+               (dedicated . t)))
+(add-to-list 'display-buffer-alist
+             '("\\`CAPTURE"
+               (display-buffer-in-side-window)
+               (side . right)
+               (window-width . 0.5)
+               (dedicated . t)))
+
+(advice-add 'lsp-describe-thing-at-point :after
+            (lambda (&rest _)
+              (when-let ((win (get-buffer-window "*lsp-help*")))
+                (select-window win))))
+;; Magit: diff/log/revision in a separate bottom window in the same frame.
+(add-to-list 'display-buffer-alist
+             '("\\`\\*magit-\\(diff\\|log\\|revision\\|process\\)"
+               (display-buffer-below-selected)
+               (window-height . 0.4)
+               (dedicated . t)))
+(setq pop-up-frames nil)
+(setq display-buffer-base-action '(display-buffer-reuse-window
+                                   display-buffer-same-window))
+(use-package colorful-mode
+  :ensure t
+  :hook ((prog-mode . colorful-mode)
+         (css-mode . colorful-mode)
+         (html-mode . colorful-mode)
+         (latex-mode . colorful-mode)
+         (org-mode . colorful-mode)
+         (emacs-lisp-mode . colorful-mode)
+         )
+  :config
+  ;; Show color previews inline (default t)
+  (setq colorful-use-prefix nil)
+  ;; Do not highlight colors inside comments (default nil)
+  (setq colorful-highlight-in-comments nil))
+#+end_src
+
+* Completion & Minibuffer
+
+Vertico renders the minibuffer as a vertical list, and =vertico-directory=
+adds directory navigation.  Orderless matches query parts in any order,
+Marginalia annotates candidates, and Corfu provides in-buffer completion with
+popup documentation and type icons.  Consult supplies line search, buffer
+switching, and ripgrep, while Cape adds extra completion backends.
+
+#+begin_src emacs-lisp
+(use-package vertico
+  :init (vertico-mode)
+  :bind (:map vertico-map
+              ("DEL" . vertico-directory-delete-char)
+              ("C-<backspace>" . vertico-directory-up)))
+
+(use-package vertico-directory
+  :after vertico
+  :ensure nil
+  :bind (:map vertico-map
+              ("RET" . vertico-directory-enter)
+              ("DEL" . vertico-directory-delete-char)
+              ("M-DEL" . vertico-directory-delete-word)))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
+
+(use-package marginalia
+  :init (marginalia-mode))
+
+;; ---------- CORFU ----------
+(use-package corfu
+  :init
+  (global-corfu-mode)
+  :custom
+  (corfu-auto t)
+  (corfu-auto-delay 0.1)
+  (corfu-auto-prefix 1)
+  (corfu-cycle t)
+  (corfu-preselect 'first)
+  (corfu-quit-no-match 'separator)
+  :bind (:map corfu-map
+              ("RET" . nil)
+              ("<return>" . nil)
+              ("TAB" . corfu-insert)
+              ("<tab>" . corfu-insert)
+              ("<backtab>" . corfu-previous)
+              ("S-TAB" . corfu-previous)))
+
+;; Signature/doc popup below the candidate list
+(use-package corfu-popupinfo
+  :ensure nil
+  :after corfu
+  :hook (corfu-mode . corfu-popupinfo-mode)
+  :custom
+  (corfu-popupinfo-delay '(0.2 . 0.1))
+  (corfu-popupinfo-hide nil))
+
+;; Icons to the left of candidates (F, V, M, etc.)
+(use-package kind-icon
+  :ensure t
+  :after corfu
+  :custom
+  (kind-icon-default-face 'corfu-default)
+  (kind-icon-blend-background t)
+  (kind-icon-use-icons t)
+  :config
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+
+;; ---------- CONSULT ----------
+(use-package consult
+  :bind (("C-s" . consult-line)
+         ("C-x b" . consult-buffer))
+  :config
+  (consult-customize
+   consult-ripgrep consult-git-grep consult-grep
+   consult-bookmark consult-recent-file consult-buffer
+   :preview-key '(:debounce 0.2 any))
+
+  (add-to-list 'consult-buffer-filter "^\\*clang")
+  (add-to-list 'consult-buffer-filter "^\\*EGLOT")
+  (add-to-list 'consult-buffer-filter "^\\*Flycheck")
+  (add-to-list 'consult-buffer-filter "^\\*Epil")
+  (add-to-list 'consult-buffer-filter "^\\*Async")
+  (add-to-list 'consult-buffer-filter "^\\*elpaca")
+  (add-to-list 'consult-buffer-filter "^\\*xref"))
+(use-package cape
+  :ensure t)
+#+end_src
+
+* Language Server Protocol (LSP)
+
+LSP starts automatically in C, C++, and Python.  clangd gets background
+indexing, clang-tidy, detailed completion, include-what-you-use, and the
+project's fallback style.  For Python, competing servers are disabled and
+=basedpyright= is registered with higher priority; Typst registers its own
+=tinymist= client later.  The section also enables snippets, Flycheck with
+inline diagnostics, clang-format on save, and Cape completion integration.
+
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :hook ((c-mode . lsp)
+         (c++-mode . lsp)
+         (python-mode . lsp))
+  :commands lsp
+  :config
+  (setq lsp-inlay-hint-enable t
+        lsp-semantic-tokens-enable t
+        lsp-enable-snippet t
+        lsp-clients-clangd-args '("--background-index"
+                                  "--clang-tidy"
+                                  "--completion-style=detailed"
+                                  "--header-insertion=iwyu"
+                                  "--fallback-style=file"))
+
+  (with-eval-after-load 'lsp-semantic-tokens
+    (set-face-attribute 'lsp-face-semhl-constant nil :background nil)
+    (set-face-attribute 'lsp-face-semhl-variable nil :background nil)
+    (set-face-attribute 'lsp-face-semhl-function nil :background nil)))
+
+(with-eval-after-load 'lsp-mode
+  (evil-define-key 'normal lsp-mode-map
+    (kbd "g d") 'lsp-find-definition
+    (kbd "g r") 'lsp-find-references
+    (kbd "K")   'lsp-ui-doc-show))
+(with-eval-after-load 'lsp-mode
+  (setq lsp-disabled-clients '(semgrep-ls pyls ty-ls ruff pylsp))
+
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("basedpyright-langserver" "--stdio"))
+    :activation-fn (lsp-activate-on "python")
+    :server-id 'basedpyright
+    :priority 10)))
+(use-package lsp-ui
+  :commands lsp-ui-mode
+  :config
+  (setq lsp-ui-sideline-enable nil
+        lsp-ui-doc-enable t
+        lsp-ui-doc-header t
+        lsp-ui-doc-include-signature t))
+
+
+(use-package yasnippet
+  :ensure t
+  :config
+  (yas-global-mode 1))
+
+(use-package flycheck
+  :init (global-flycheck-mode))
+
+(use-package flycheck-inline
+  :ensure t
+  :after flycheck
+  :config
+  (global-flycheck-inline-mode)
+  (setq flycheck-display-errors-delay 0.1))
+
+;; ================= TABS: 4 SPACES =================
+(setq-default c-basic-offset 4)
+
+;; Make sure the Emacs style does not override these settings
+(setq c-default-style "user")
+
+;; Apply local settings when entering the mode
+(defun my/c-mode-setup ()
+  (setq-local c-basic-offset 4)
+  (setq-local tab-width 4)
+  (setq-local indent-tabs-mode nil))
+(add-hook 'c-mode-hook #'my/c-mode-setup)
+(add-hook 'c++-mode-hook #'my/c-mode-setup)
+;; ================= TABS: 4 SPACES =================
+
+(use-package clang-format
+  :ensure t
+  :commands clang-format-region
+  :hook ((c-mode c++-mode) . (lambda ()
+                               (local-set-key (kbd "C-c C-f") 'clang-format-region)
+                               (add-hook 'before-save-hook 'clang-format-buffer nil t))))
+
+(setq lsp-restart 'auto-restart)
+(with-eval-after-load 'lsp-completion
+  (advice-add 'lsp-completion-at-point :around #'cape-wrap-buster))
+#+end_src
+
+* Help & Discoverability
+
+=which-key= shows available continuations after a prefix is pressed.  A short
+delay keeps it unobtrusive while making the leader bindings discoverable.
+
+#+begin_src emacs-lisp
+(use-package which-key
+  :init (which-key-mode)
+  :config
+  (setq which-key-idle-delay 0.3))
+#+end_src
+
+* Projects (Projectile)
+
+Projectile finds project roots and switches between projects under =~/prog/=.
+Switching a project opens Dired at its root instead of the project's default
+file.
+
+#+begin_src emacs-lisp
+(use-package projectile
+  :init (projectile-mode +1)
+  :config
+  (setq projectile-project-search-path '("~/prog/")
+        projectile-switch-project-action #'projectile-dired))
+#+end_src
+
+* Terminal (vterm)
+
+=vterm= provides a libvterm-based terminal inside Emacs.  Line numbers and
+global hl-line are disabled in terminal buffers, scrollback is raised to 10000
+lines, and =SPC= in insert state is sent to the terminal process instead of
+triggering the leader map.
+
+#+begin_src emacs-lisp
+(use-package vterm
+  :ensure t
+  :hook (vterm-mode . (lambda ()
+                        (display-line-numbers-mode -1)
+                        (setq-local global-hl-line-mode nil)))
+  :config
+  (setq vterm-max-scrollback 10000)
+
+  (evil-define-key 'insert vterm-mode-map (kbd "SPC") #'vterm--self-insert))
+#+end_src
+
+* PDF & Documents
+
+=pdf-tools= renders PDFs inside Emacs and =pdf-view-restore= remembers the
+reading position between sessions.  PDF files open directly in =pdf-view-mode=
+without a build prompt, and line numbers are hidden while reading.
+
+#+begin_src emacs-lisp
+(use-package pdf-tools
+  :ensure t
+  :mode ("\\.pdf\\'" . pdf-view-mode)
+  :config
+  (pdf-tools-install :no-query)
+  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1))))
+
+(use-package pdf-view-restore
+  :ensure t
+  :hook (pdf-view-mode . pdf-view-restore-mode))
+(setq pdf-view-continuous nil)
+#+end_src
+
+* Org Mode
+
+Org is the main note-taking and document environment.  This section keeps the
+original core settings, LaTeX export and preview, smart RET behavior,
+presentation modes, modern styling, and the automatic move of DONE tasks in
+=plans.org=.  Face definitions that used to be duplicated here now live in
+=custom.el=.
+
+** Core Org Settings
+
+The base settings enable inline images, hidden emphasis markers, a custom fold
+ellipsis, and link-following RET.  Notes live under =~/org/=, the default task
+file is =tasks.org=, and two capture templates provide a plain TODO and a
+scheduled TODO.  Babel is enabled for Emacs Lisp, Python, Shell, C, JavaScript,
+and Org, and evaluation confirmation is off.
+
+#+begin_src emacs-lisp
+(setenv "PATH" (concat "/Library/TeX/texbin:" (getenv "PATH")))
+(add-to-list 'exec-path "/Library/TeX/texbin")
+
+(use-package org
+    :ensure nil
+    :demand t
+    :hook (org-mode . org-indent-mode)
+    :config
+        (setq org-startup-with-inline-images t)
+    (setq org-image-actual-width '(300))
+    (setq org-return-follows-link t)
+    (setq org-hide-emphasis-markers t)
+    (setq org-ellipsis " ▾")
+
+    (setq org-directory "~/org/")
+    (setq org-default-notes-file (concat org-directory "/tasks.org"))
+    (setq org-capture-templates
+            '(("t" "Todo" entry (file+headline "tasks.org" "Inbox")
+            "* TODO %?\n  %i\n  %a")
+            ("d" "Date Task" entry (file+headline "tasks.org" "Schedule")
+            "* TODO %?\n  SCHEDULED: %^t\n")))
+
+      (require 'ox-latex)
+
+    (setq org-latex-compiler "xelatex")
+
+    (setq org-latex-default-packages-alist
+        '(("" "graphicx" t)
+          ("" "longtable" nil)
+          ("" "wrapfig" nil)
+          ("" "rotating" nil)
+          ("normalem" "ulem" t)
+          ("" "amsmath" t)
+          ("" "amssymb" t)
+          ("" "capt-of" nil)
+          ("" "hyperref" nil)))
+
+      (setq org-latex-packages-alist
+        '(("" "mathtools" t)
+          ("" "geometry" t)
+          ("" "polyglossia" t)))
+
+      (setq org-preview-latex-default-process 'imagemagick)
+
+    (setq org-preview-latex-process-alist
+        '((imagemagick
+           :programs ("xelatex" "convert")
+           :description "pdf > png"
+           :image-input-type "pdf"
+           :image-output-type "png"
+           :image-size-adjust (1.0 . 1.0)
+           :latex-compiler
+                      ("xelatex -interaction nonstopmode -output-directory %o %f")
+           :image-converter
+                      ("convert -density 320 -trim -antialias %f -quality 100 %O"))))
+
+    (setq org-format-latex-options
+        (plist-put org-format-latex-options :scale 0.5))
+
+    (setq org-format-latex-options
+        (plist-put org-format-latex-options :background "Transparent"))
+
+    (setq org-confirm-babel-evaluate nil)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (python . t)
+     (shell . t)
+     (C . t)
+     (js . t)
+     (org . t))))
+(setq org-babel-python-command "python3")
+#+end_src
+
+** LaTeX Export and Formula Preview
+
+Org exports through XeLaTeX with a package list extended by =mathtools=,
+=geometry=, and =polyglossia=.  The old =org-latex-pdf-process= value from this
+section was always replaced by the minted-enabled value in the LaTeX section,
+so only the final value is kept there.  Formula preview uses ImageMagick to
+convert XeLaTeX output to a transparent PNG at half scale.
+
+#+begin_src emacs-lisp
+(defun my/org-latex-preview-all ()
+  "Обновить все формулы в буфере"
+  (interactive)
+  (org-latex-preview '(16)))
+#+end_src
+
+** Smart RET and Checkboxes
+
+=my/org-ret-dwim= makes RET context-sensitive: it toggles checkboxes, follows
+links, folds headings, or moves to the next line.  Checkboxes cycle through
+unchecked, checked, and partial states.  The same block binds these commands
+in Evil normal and insert states.
+
+#+begin_src emacs-lisp
+(defun my/org-toggle-checkbox-3way ()
+  "Cycle checkbox: [ ] -> [X] -> [-] -> [ ]."
+  (interactive)
+  (let ((state (org-element-property :checkbox (org-element-context))))
+    (pcase state
+      ('off   (org-toggle-checkbox))        ; [ ] -> [X]
+      ('on    (org-toggle-checkbox '(16)))  ; [X] -> [-]
+      ('trans                               ; [-] -> [ ]
+       (org-toggle-checkbox '(4))           ; remove
+       (org-toggle-checkbox '(4))))))       ; add again
+(defun my/org-ret-dwim ()
+  "Smart RET: follows links, toggles checkboxes, or folds headings."
+  (interactive)
+  (let* ((element (org-element-context))
+         (item    (org-element-lineage element '(item) t)))
+    (cond
+     ((eq major-mode 'sqlite-mode)
+      (call-interactively 'sqlite-mode-list-data))
+     ((and item (org-element-property :checkbox item))
+      (my/org-toggle-checkbox-3way))
+     ((eq 'link (org-element-type element))
+      (org-open-at-point-global))
+     ((org-at-heading-p) (org-cycle))
+     (t (evil-next-line)))))
+
+(with-eval-after-load 'evil
+  (with-eval-after-load 'org
+    (evil-define-key 'normal org-mode-map (kbd "RET") 'my/org-ret-dwim)
+    (evil-define-key 'insert org-mode-map (kbd "RET") 'org-return)
+    (evil-define-key 'normal org-mode-map (kbd "t") #'org-todo)))
+#+end_src
+
+** Presentations (org-present and org-tree-slide)
+
+Two presentation packages coexist: =org-present= shows headings as slides with
+larger text and folded subheadings, while =org-tree-slide= offers a more
+flexible slide view.  Both hide line numbers, enlarge the default face, and
+restore the original state on exit.
+
+#+begin_src emacs-lisp
+(use-package org-present
+  :ensure t
+  :defer t
+  :config
+    (define-key org-present-mode-keymap (kbd "<left>")  'org-present-prev)
+  (define-key org-present-mode-keymap (kbd "<right>") 'org-present-next)
+  (define-key org-present-mode-keymap (kbd "<up>")    'org-present-prev)
+  (define-key org-present-mode-keymap (kbd "<down>")  'org-present-next)
+
+    (defun my/org-present-fold-subheadings (&rest _)
+    "Свернуть все подзаголовки (уровень ≥2) в текущем слайде."
+    (save-excursion
+      (org-fold-show-all)
+      (goto-char (point-min))
+      (forward-line 1)
+      (while (re-search-forward org-outline-regexp-bol nil t)
+        (when (>= (org-outline-level) 2)
+          (org-fold-hide-subtree)))))
+
+    (add-hook 'org-present-after-navigate-functions
+            #'my/org-present-fold-subheadings)
+
+    (add-hook 'org-present-mode-hook
+            (lambda ()
+              (org-present-big)
+              (org-display-inline-images)
+              (org-present-hide-cursor)
+              (setq-local face-remapping-alist '((default (:height 1.3) default)))
+              (display-line-numbers-mode -1)
+              (when (featurep 'evil)
+                (evil-local-set-key 'normal (kbd "<left>")  'org-present-prev)
+                (evil-local-set-key 'normal (kbd "<right>") 'org-present-next)
+                (evil-local-set-key 'normal (kbd "<up>")    'org-present-prev)
+                (evil-local-set-key 'normal (kbd "<down>")  'org-present-next))))
+
+  (add-hook 'org-present-mode-quit-hook
+            (lambda ()
+              (org-present-small)
+              (org-remove-inline-images)
+              (org-present-show-cursor)
+              (display-line-numbers-mode 1)
+              (setq-local face-remapping-alist '()))))
+
+(use-package org-tree-slide
+  :ensure t
+  :defer t
+  :config
+      (setq org-tree-slide-skip-outline-level 2)
+
+      (define-key org-tree-slide-mode-map (kbd "<up>") nil)
+  (define-key org-tree-slide-mode-map (kbd "<down>") nil)
+
+      (define-key org-tree-slide-mode-map (kbd "n") 'org-tree-slide-move-next-tree)
+  (define-key org-tree-slide-mode-map (kbd "p") 'org-tree-slide-move-previous-tree)
+
+    (add-hook 'org-tree-slide-play-hook
+            (lambda ()
+                            (setq-local face-remapping-alist '((default (:height 1.5) default)))
+              (display-line-numbers-mode -1)
+                                                        (when (featurep 'evil)
+                (evil-local-set-key 'normal (kbd "<left>")  'org-tree-slide-move-previous-tree)
+                (evil-local-set-key 'normal (kbd "<right>") 'org-tree-slide-move-next-tree)
+                (evil-local-set-key 'normal (kbd "<up>")    'previous-line)
+                (evil-local-set-key 'normal (kbd "<down>")  'next-line))))
+
+  (add-hook 'org-tree-slide-stop-hook
+            (lambda ()
+              (setq-local face-remapping-alist '())
+              (display-line-numbers-mode 1))))
+(add-hook 'org-mode-hook #'visual-line-mode)
+
+
+
+(with-eval-after-load 'org
+  (define-key org-read-date-minibuffer-local-map (kbd "h")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-day 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "l")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-day 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "j")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-week 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "k")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-week 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "H")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-month 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "L")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-month 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "K")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-year 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "J")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-year 1))))
+  (define-key org-read-date-minibuffer-local-map (kbd "g")
+    (lambda () (interactive) (org-eval-in-calendar '(calendar-goto-today)))))
+#+end_src
+
+** Org Appearance (org-modern and org-tidy)
+
+=org-modern= replaces headline stars and checkboxes with Unicode markers and
+styles tables and agenda labels.  =org-tidy= hides property drawers in a
+compact inline style.  Face customization is not repeated here; the final
+values are in =custom.el=.
+
+#+begin_src emacs-lisp
+;; ======= org-mode stilisation =======
+(use-package org-modern
+  :ensure t
+  :hook ((org-mode . org-modern-mode)
+         (org-agenda-finalize . org-modern-agenda))
+  :config
+  ;; --- Static star icons ---
+  (setq org-modern-star 'replace)
+(setq org-modern-replace-stars "○○◇◇✳◆□")
+
+  ;; --- Checkboxes ---
+(setq org-modern-checkbox '((88 . "☑") (45 . "☒" )
+ (32 . "□")))
+
+  ;; --- Remove extra code-block decoration ---
+  (setq org-modern-table t)
+  (setq org-modern-block-fringe nil))
+
+;; Also handle the heading text of DONE entries
+(with-eval-after-load 'org
+  (setq org-fontify-done-headline nil))
+
+(use-package org-tidy
+  :ensure t
+  :hook (org-mode . org-tidy-mode)
+  :config
+  ;; Display style:
+  ;; 'fringe    - hide and show an indicator in the fringe
+  ;; 'inline    - hide and append a ♯ marker to the heading
+  ;; 'invisible - hide only
+  (setq org-tidy-properties-style 'inline))
+#+end_src
+
+** Moving DONE Tasks (plans.org)
+
+The autosort function moves a task to the end of the =Уже сделано= or =:done:=
+section after it is marked DONE.  It runs 0.1 seconds after the state change
+so that Org has finished updating the buffer.
+
+#+begin_src emacs-lisp
+;; ================= plans.org autosort ================
+;; ====== Move DONE tasks to the "Уже сделано" section ======
+(defun my/org-move-done-to-bottom ()
+  "Move a task to the end of the '* Уже сделано :done:' section when marked DONE."
+  (when (equal org-state "DONE")
+    (let ((task-marker (point-marker)))
+      (run-at-time 0.1 nil
+                   (lambda (marker)
+                     (when (marker-buffer marker)
+                       (with-current-buffer (marker-buffer marker)
+                         (save-excursion
+                           (goto-char marker)
+                           (when (org-at-heading-p)
+                             (org-back-to-heading t)
+                             ;; Check whether we are already inside that section
+                             (let ((parent-heading
+                                    (save-excursion
+                                      (ignore-errors
+                                        (org-up-heading-safe)
+                                        (org-get-heading t t t t)))))
+                               (unless (and parent-heading
+                                            (string-match-p "Уже сделано" parent-heading))
+
+                                 ;; Find the section by :done: tag or by name
+                                 (let ((target-marker
+                                        (save-excursion
+                                          (goto-char (point-min))
+                                          (when (or (re-search-forward "^\\*+ .*:done:" nil t)
+                                                    (re-search-forward "^\\*+ Уже сделано" nil t))
+                                            ;; The section is always at the end, so jump to the end of the buffer
+                                            (goto-char (point-max))
+                                            (copy-marker (point))))))
+
+                                   (if (marker-position target-marker)
+                                       (progn
+                                         ;; 1. Cut the task
+                                         (org-cut-subtree)
+                                         ;; 2. Go to the end of the file and paste at level 2 (**)
+                                         (goto-char target-marker)
+                                         (unless (bolp) (newline))
+                                         (org-paste-subtree 2)
+                                         (set-marker target-marker nil)
+
+                                         ;; 3. Fold the "Уже сделано" section
+                                         (save-excursion
+                                           (goto-char (point-min))
+                                           (when (or (re-search-forward "^\\*+ .*:done:" nil t)
+                                                     (re-search-forward "^\\*+ Уже сделано" nil t))
+                                             (org-back-to-heading t)
+                                             (org-fold-hide-subtree)))
+
+                                         (message "Task moved to 'Уже сделано' and section folded."))
+                                     (message "Warning: Section with tag ':done:' or name 'Уже сделано' not found.")))))))))
+                     (set-marker marker nil))
+                   task-marker))))
+(add-hook 'org-after-todo-state-change-hook #'my/org-move-done-to-bottom)
+;; ================= plans.org autosort ================
+#+end_src
+
+* Org Roam
+
+Org Roam provides a Zettelkasten-style note graph backed by SQLite.  Notes live
+in =~/org/roam/= with daily notes in =daily/=, and capture templates cover
+default notes, lecture notes, and discipline notes.  The section also configures
+Org Download for images, Org Roam UI, agenda integration, and tag-based node
+search.
+
+#+begin_src emacs-lisp
+;; org-roam
+;;; ---- Org-roam ----
+(use-package org-roam
+  :ensure t
+  :after org
+  :custom
+  (org-roam-directory (file-truename "~/org/roam/"))
+  ;; 2. Directory for daily notes
+  (org-roam-dailies-directory "daily/")
+  ;; 3. Database for instant search (SQLite)
+  (org-roam-database-connector 'sqlite-builtin)
+  :config
+  (add-to-list 'org-roam-buffer-postrender-functions
+             #'magit-section-show-level-2-all)
+  (setq org-roam-node-display-template
+        (concat "${title:*} " (propertize "${tags:15}" 'face 'org-tag)))
+  ;; Template for a new note node
+(defvar my/org-roam-lecture-header
+  (concat
+   "#+TITLE: ${title}\n"
+   "#+AUTHOR: Студент группы ИУ5-56Б Канаев А.И.\n"
+   "#+DATE: %<%Y-%m-%d>\n"
+   "#+LANGUAGE: ru\n"
+   "#+OPTIONS: toc:1 num:t ^:nil\n"
+   "#+STARTUP: fold\n"
+   "#+LATEX_COMPILER: xelatex\n"
+   "#+LATEX_HEADER: \\setmainfont{Arial}\n"
+   "#+LATEX_HEADER: \\setsansfont{Arial}\n"
+   "#+LATEX_HEADER: \\setmonofont{Menlo}\n"
+   "#+LATEX_HEADER: \\newfontfamily\\cyrillicfont{Arial}\n"
+   "#+LATEX_HEADER: \\newfontfamily\\cyrillicfontsf{Arial}\n"
+   "#+LATEX_HEADER: \\newfontfamily\\cyrillicfonttt{Menlo}\n"
+   "#+LATEX_HEADER: \\geometry{left=1cm, right=1cm, top=2cm, bottom=2cm}\n"
+   "#+LATEX_HEADER: \\usepackage{minted}\n"
+   "#+LATEX_HEADER: \\usepackage{xcolor}\n"
+   "#+LATEX_HEADER: \\definecolor{bg}{HTML}{282828}\n")
+  "Header for lecture notes in org-roam.")
+
+(setq org-roam-capture-templates
+      `(("d" "default" plain "%?"
+         :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                            "#+TITLE: ${title}\n")
+         :unnarrowed t)
+        ("l" "lecture" plain "%?"
+         :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                            ,my/org-roam-lecture-header)
+         :unnarrowed t)
+
+("v" "discipline" plain "%?"
+ :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                     ":PROPERTIES:\n:CATEGORY: ${title}\n:END:\n#+TITLE: ${title}\n#+filetags: :discipline:\n")
+ :unnarrowed t)
+        ))
+  ;; Шаблон для ежедневной заметки
+  (setq org-roam-dailies-capture-templates
+        '(("d" "default" entry "* %?"
+           :target (file+head "%<%Y-%m-%d>.org"
+                              "#+title: %<%Y-%m-%d>\n"))))
+  ;; Активируем режим
+  (org-roam-setup))
+
+
+(with-eval-after-load 'org-roam
+  (with-eval-after-load 'evil
+    (evil-set-initial-state 'org-roam-buffer-mode 'normal)))
+(with-eval-after-load 'org-roam
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal org-roam-preview-map
+      (kbd "0") #'evil-beginning-of-line
+      (kbd "^") #'evil-first-non-blank
+      (kbd "$") #'evil-end-of-line)))
+
+;; === org-download ==
+(use-package org-download
+  :ensure t
+  :after org
+  :config
+  ;; 1. Изображения будут складываться в ~/org/roam/images/
+  (setq org-download-method 'directory)
+  (setq org-download-image-dir (expand-file-name "images" org-roam-directory))
+  ;; 2. Отключаем создание подпапок по заголовкам, чтобы всё было в одной папке
+  (setq org-download-heading-lvl nil)
+  ;; 3. Добавляем временную метку к имени файла, чтобы имена были уникальными
+  (setq org-download-timestamp "%Y%m%d-%H%M%S_")
+  ;; 4. Для macOS: указываем, какую утилиту использовать для работы с буфером
+  (setq org-download-screenshot-method "/opt/homebrew/bin/pngpaste %s")
+  :bind (("C-M-y" . org-download-clipboard)
+         ("C-c i i" . org-download-image)))
+(setq org-download-annotate-function (lambda (_link) ""))
+
+;; === graph ui ===
+(use-package org-roam-ui
+  :ensure t
+  :after org-roam
+  :config
+  ;; Синхронизировать тему ORUI с темой Emacs
+  (setq org-roam-ui-sync-theme t)
+  ;; Следовать за текущим узлом в Emacs
+  (setq org-roam-ui-follow t)
+  ;; Обновлять граф при сохранении файла
+  (setq org-roam-ui-update-on-save t)
+  ;; Не открывать браузер автоматически при запуске
+  (setq org-roam-ui-open-on-start nil))
+;;       ======= system crafters funcs =======
+(defun org-roam-node-insert-immediate (arg &rest args)
+  (interactive "P")
+  (let ((args (push arg args))
+        (org-roam-capture-templates (list (append (car org-roam-capture-templates)
+                                                  '(:immediate-finish t)))))
+    (apply #'org-roam-node-insert args)))
+
+(defun my/org-roam-refresh-agenda-list ()
+  "Обновить `org-agenda-files` файлами с тегом 'discipline'."
+  (interactive)
+  (let ((project-files
+         (mapcar #'org-roam-node-file
+                 (seq-filter
+                  (lambda (node)
+                    (member "discipline" (org-roam-node-tags node)))
+                  (org-roam-node-list)))))
+    (setq org-agenda-files (append project-files
+                                   (list (expand-file-name "~/org/roam/daily/"))
+                                   (list (expand-file-name "~/org/tasks.org"))))))
+;; Обновлять список при запуске org-agenda
+(add-hook 'org-agenda-mode-hook #'my/org-roam-refresh-agenda-list)
+
+;; Или обновлять при сохранении любого org-roam файла
+(add-hook 'org-roam-capture-new-node-hook #'my/org-roam-refresh-agenda-list)
+(defun my/org-roam-node-find-by-tag ()
+  "Запросить тег и найти узел org-roam только с этим тегом."
+  (interactive)
+  (let ((tag (completing-read "Tag: " (org-roam-tag-completions) nil t)))
+    (org-roam-node-find nil nil
+                        (lambda (node)
+                          (member tag (org-roam-node-tags node))))))
+(setq org-roam-db-node-include-function
+      (lambda ()
+        "Индексировать только файлы, игнорируя все заголовки внутри них."
+        (not (org-at-heading-p))))
+#+end_src
+
+* Line Dragging (drag-stuff)
+
+=drag-stuff= moves the current line or selection in any direction without
+cutting and pasting.  The =M-j/k/h/l= keys move text down, up, left, and right.
+
+#+begin_src emacs-lisp
+(use-package drag-stuff
+  :ensure t
+  :config
+  (drag-stuff-global-mode 1)
+  (drag-stuff-define-keys)
+
+    :bind (("M-j" . drag-stuff-down)
+         ("M-k" . drag-stuff-up)
+         ("M-h" . drag-stuff-left)
+         ("M-l" . drag-stuff-right)))
+#+end_src
+
+* Org Agenda
+
+The agenda starts on the current day, warns about deadlines one day ahead,
+and hides the =discipline= tag.  Evil-org adds modal navigation, and a custom
+motion map adds single-key todo, clock, schedule, deadline, capture, quit, and
+redraw commands.  Custom agenda views provide a daily view, Emacs tasks from
+=plans.org=, event/task views, and an urgent view.
+
+Note: the =org-agenda-tag-filter-preset= inside the second block of the daily
+view does not filter that individual block; it is preserved unchanged.
+
+#+begin_src emacs-lisp
+;; ====== Базовые настройки ======
+(setq org-agenda-start-on-weekday nil)
+(setq org-deadline-warning-days 1)
+(setq org-agenda-hide-tags-regexp "discipline")
+(setq org-agenda-current-time-string "")
+(setq org-agenda-time-grid '((daily) () "" ""))
+(setq calendar-week-start-day 1)
+
+;; Защита от глубокой рекурсии в nerd-icons/all-the-icons
+(setq max-lisp-eval-depth 10000)
+
+;; ====== Обновление org-agenda-files ДО запуска ======
+(with-eval-after-load 'org-agenda
+  (defun my/refresh-agenda-files-before-agenda (&rest _)
+    (when (fboundp 'my/org-roam-refresh-agenda-list)
+      (my/org-roam-refresh-agenda-list)))
+  (advice-add 'org-agenda :before #'my/refresh-agenda-files-before-agenda))
+
+;; ====== Evil-org ======
+(use-package evil-org
+  :ensure t
+  :after org
+  :hook (org-mode . evil-org-mode)
+  :config
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys))
+
+;; ====== Evil-биндинги ======
+(defun my/setup-agenda-evil-keys ()
+  (evil-define-key 'motion org-agenda-mode-map
+    (kbd "h")   'evil-backward-char
+    (kbd "l")   'evil-forward-char
+    (kbd "j")   'org-agenda-next-item
+    (kbd "k")   'org-agenda-previous-item
+    (kbd "t")   'org-agenda-todo
+    (kbd "I")   'org-agenda-clock-in
+    (kbd "O")   'org-agenda-clock-out
+    (kbd "s")   'org-agenda-schedule
+    (kbd "d")   'org-agenda-deadline
+    (kbd "c")   'org-capture
+    (kbd "q")   'org-agenda-quit
+    (kbd "r")   'org-agenda-redo
+    (kbd "RET") 'org-agenda-switch-to
+    (kbd "/") 'org-agenda-filter-by-tag
+    ))
+
+(add-hook 'org-agenda-mode-hook #'my/setup-agenda-evil-keys)
+
+;; ====== Кастомные команды ======
+(setq org-agenda-custom-commands
+      '(("d" "📅 день"
+         ((agenda ""
+                  ((org-agenda-span 1)
+                   (org-agenda-start-day nil)
+                   (org-agenda-overriding-header "📅 сегодня")))
+
+          (agenda ""
+                  ((org-agenda-span 2)
+                   (org-agenda-start-day "+1")
+                   (org-agenda-tag-filter-preset '("-event"))
+                   (org-agenda-overriding-header "⏭️ Следующие 2 дня")))
+
+          (todo "TODO"
+                ((org-agenda-todo-ignore-scheduled nil)
+                 (org-agenda-todo-ignore-deadlines nil)
+                 (org-agenda-overriding-header "⏭️ Все TODO")))
+
+          (tags-todo "urgent"
+                ((org-agenda-overriding-header "🔥 Urgent")))))
+
+        ("e" "🛠️ Emacs Tasks"
+         ((todo "TODO"
+                ((org-agenda-files (list "~/.config/emacs/plans.org"))
+                 (org-agenda-hide-tags-regexp (regexp-opt '("active" "emacs" "config")))
+                 (org-agenda-overriding-header "Ongoing tasks")))))
+
+        ("g" "Events"
+         ((agenda ""
+                  ((org-agenda-span 7)
+                   (org-agenda-start-day nil)
+                   (org-agenda-overriding-header "All Events for next 7 days"))))
+         ((org-agenda-tag-filter-preset '("+event"))))
+
+        ("G" "Tasks"
+         ((agenda ""
+                  ((org-agenda-span 7)
+                   (org-agenda-start-day nil)
+                   (org-agenda-overriding-header "All tasks for next 7 days"))))
+         ((org-agenda-tag-filter-preset '("-event"))))
+
+        ("u" "Urgent"
+         ((tags-todo "urgent")))
+        ))
+
+(setq org-complete-tags-always-offer-all-agenda-tags t)
+(setq org-agenda-tags-column -110)
+
+;; 1. Вспомогательная функция для выбора узла (как раньше, но с защитой от nil)
+(defun my/org-roam-read-node-by-tag (tag)
+  "Выбрать узел org-roam только с TAG (без открытия файла)."
+  (let* ((nodes (seq-filter (lambda (n) (member tag (org-roam-node-tags n)))
+                            (org-roam-node-list)))
+         (completions (mapcar (lambda (n) (cons (org-roam-node-title n) n)) nodes)))
+    (unless nodes
+      (user-error "Не найдено ни одного узла с тегом '%s'" tag))
+    (let ((choice (completing-read (format "Node (%s): " tag) completions nil t)))
+      (cdr (assoc choice completions)))))
+
+(defun my/org-roam-uni-target ()
+  "Запросить узел с тегом discipline и вернуть путь к его файлу."
+  (let* ((node (my/org-roam-read-node-by-tag "discipline"))
+         (file (org-roam-node-file node)))
+    (unless file
+      (user-error "У выбранного узла нет привязанного файла"))
+    file))
+
+;; 3. Функция для перехода к первому заголовку (без изменений)
+(defun my/goto-first-heading ()
+  "Перейти к первому заголовку в текущем буфере."
+  (goto-char (point-min))
+  (if (re-search-forward org-outline-regexp-bol nil t)
+      (goto-char (match-beginning 0))
+    (goto-char (point-max))))
+
+;; 4. Набор шаблонов
+(defvar my/agenda-capture-templates
+  '(("e" "Emacs Task" entry
+     (file+headline "~/.config/emacs/plans.org" "Активные задачи")
+     "** TODO %?\n")
+    ("p" "Personal Task" entry
+     (file+headline "~/org/tasks.org" "Inbox")
+     "* %?\n")
+    ("u" "Uni Task" entry
+     (file+function my/org-roam-uni-target my/goto-first-heading)
+     "** TODO %?\n")))
+
+;; 5. Обёртка, которая показывает меню выбора шаблонов
+(defun my/agenda-capture-smart ()
+  "Вызов org-capture с выбором одного из трёх шаблонов."
+  (interactive)
+  (let ((org-capture-templates my/agenda-capture-templates))
+    (org-capture)))
+#+end_src
+
+* Calendar Grid (calfw)
+
+=calfw= and =calfw-org= provide a week/month calendar grid over Org data.
+Evil keys navigate days and weeks, =g= jumps to a date, RET opens the agenda
+day, TAB shows details, and =x= refreshes the calendar.
+
+#+begin_src emacs-lisp
+(use-package calfw
+  :ensure t
+  :config
+  (require 'calfw-org))
+
+(with-eval-after-load 'calfw
+  (evil-define-key '(normal motion) calfw-calendar-mode-map
+    "j" 'calfw-navi-next-week-command
+    "k" 'calfw-navi-previous-week-command
+    "h" 'calfw-navi-previous-day-command
+    "l" 'calfw-navi-next-day-command
+    "g" 'calfw-org-goto-date
+    "x" 'calfw-refresh-calendar-buffer
+    "q" 'bury-buffer
+    (kbd "RET") 'calfw-org-open-agenda-day
+    (kbd "TAB") 'calfw-show-details-command))
+
+(autoload 'calfw-open-org-calendar "calfw-org" "Open Org Calendar" t)
+
+(use-package calfw-org
+  :ensure t)
+#+end_src
+
+* Telegram (telega)
+
+=telega= is installed directly from GitHub and uses Homebrew's TDLib, so the
+library prefix and =PKG_CONFIG_PATH= are set for macOS.  Telegram buffers use
+Emacs state instead of Evil, images are enabled, and the mode-line indicator
+and notifications are turned on.
+
+#+begin_src emacs-lisp
+(setq telega-server-libs-prefix "/opt/homebrew")
+
+(setenv "PKG_CONFIG_PATH"
+        (concat "/opt/homebrew/lib/pkgconfig:" (getenv "PKG_CONFIG_PATH")))
+
+(use-package telega
+  :ensure (:host github :repo "zevlg/telega.el")
+  :defer t
+  :commands (telega)
+  :config
+    (with-eval-after-load 'evil
+    (evil-set-initial-state 'telega-root-mode 'emacs)
+    (evil-set-initial-state 'telega-chat-mode 'emacs))
+
+    (setq telega-use-images t)
+
+    (telega-mode-line-mode 1)
+
+    (setq telega-notifications-mode t))
+#+end_src
+
+* Russian Keyboard Layout (reverse-im)
+
+=reverse-im= translates input typed in the Russian layout into the Latin keys
+that Emacs commands expect.  This keeps leader and other keybindings usable
+while the system layout is Russian.
+
+#+begin_src emacs-lisp
+(use-package reverse-im
+  :ensure t
+  :after evil
+  :custom
+      (reverse-im-input-methods '("russian-computer"))
+  :config
+    (reverse-im-mode t))
+#+end_src
+
+* Assembler (FASM)
+
+=fasm-mode= provides syntax support for FASM assembly and is associated with
+=.asm= files.  The package is installed from its GitHub repository.
+
+#+begin_src emacs-lisp
+(use-package fasm-mode
+  :ensure (:type git :host github :repo "GabrielFrigo4/fasm-mode")
+  :defer t)
+
+(add-to-list 'auto-mode-alist '("\\.asm\\'" . fasm-mode))
+#+end_src
+
+* LaTeX Export (minted)
+
+This section makes Org export code blocks with =minted= instead of the default
+listings backend.  XeLaTeX runs three times with =-shell-escape=, which minted
+requires, and the code style is gruvbox-dark with line numbers and a framed
+background.  It intentionally overrides the LaTeX process settings from the Org
+section.
+
+#+begin_src emacs-lisp
+(setq org-latex-src-block-backend 'minted)
+
+(add-to-list 'org-latex-packages-alist '("newfloat" "minted"))
+
+(setq org-latex-pdf-process
+      '("xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+        "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+        "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
+(setq org-latex-minted-options
+      '(("style" "gruvbox-dark")
+        ("bgcolor" "bg")
+        ("frame" "lines")
+        ("linenos")))
+#+end_src
+
+* Dashboard
+
+The dashboard replaces the scratch buffer on startup with a centered banner
+and the next five agenda items.  Shortcuts, footer, startup info, and logo
+title are hidden for a minimal screen.  Dashboard is also removed from
+=evil-collection= earlier, and =initial-buffer-choice= opens it on startup.
+
+#+begin_src emacs-lisp
+(use-package dashboard
+  :ensure t
+  :config
+  (when (fboundp 'evil-collection-remove)
+    (evil-collection-remove 'dashboard))
+  (advice-remove 'dashboard-insert-startupify-lists
+                 'evil-collection-dashboard-setup-jump-commands)
+
+  (setq dashboard-startup-banner "~/.config/emacs/my_images/Amalthea_dreams.gif")
+ (setq dashboard-center-content t)
+  (setq dashboard-banner-logo-title nil)
+
+    (setq dashboard-init-info "")
+
+    (setq dashboard-items '((agenda . 5)))
+
+  (setq dashboard-agenda-sort-strategy '((time-up)))
+
+  (setq dashboard-show-shortcuts nil)
+(setq dashboard-footer-messages nil)
+(setq dashboard-set-footer nil)
+(setq dashboard-startupify-list (delq 'dashboard-insert-footer dashboard-startupify-list))
+ )
+(setq initial-buffer-choice
+      (lambda ()
+        (if (fboundp 'dashboard-open)
+            (progn (dashboard-open) (get-buffer "*dashboard*"))
+          (get-buffer-create "*scratch*"))))
+#+end_src
+
+* Typst
+
+Typst support combines =typst-mode=, the =tinymist= language server, and a
+live PDF preview.  Live preview compiles once synchronously, starts =typst
+watch=, opens the PDF beside the source, and refreshes it with a debounce when
+the watch process reports a rebuild.  Compile, preview, stop, and refresh are
+also bound under the =SPC m= leader prefix and =C-c C-= keys.
+
+#+begin_src emacs-lisp
+(use-package typst-mode
+  :ensure (:type git :host github :repo "Ziqi-Yang/typst-mode.el")
+  :mode "\\.typ\\'"
+  :hook (typst-mode . my/typst--setup)
+  :config
+  (setq typst-executable-location "typst"))
+
+;; .pdf всегда открывается в pdf-view-mode (pdf-tools), не в doc-view.
+(with-eval-after-load 'pdf-tools
+  (require 'pdf-view)
+  (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode)))
+
+(defun my/typst--setup ()
+  "Local setup for `typst-mode'."
+  (when (executable-find "tinymist")
+    (lsp-deferred))
+  (add-hook 'after-save-hook #'my/typst--on-save nil t)
+  (my/typst--bind-keys))
+
+(with-eval-after-load 'lsp-mode
+  ;; Регистрируем language-id для всех субмодов typst
+  (dolist (mode '(typst-mode
+                  typst--markup-mode
+                  typst--code-mode
+                  typst--math-mode))
+    (add-to-list 'lsp-language-id-configuration `(,mode . "typst")))
+
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection (lambda () (list "tinymist")))
+    ;; activation-fn ловит любой mode, чьё имя начинается с "typst"
+    :activation-fn (lambda (&rest _)
+                     (string-prefix-p "typst" (symbol-name major-mode)))
+    :server-id 'tinymist
+    :download-server-fn (lambda (_client _cb) nil))))
+
+(defvar my/typst--watch-process nil)
+(defvar my/typst--preview-buffer nil)
+(defvar my/typst--refresh-timer nil)
+
+(defun my/typst--pdf-file ()
+  (concat (file-name-sans-extension (buffer-file-name)) ".pdf"))
+
+(defun my/typst--watch-alive-p ()
+  (and my/typst--watch-process (process-live-p my/typst--watch-process)))
+
+(defun my/typst--stop-watch ()
+  (when (my/typst--watch-alive-p)
+    (delete-process my/typst--watch-process))
+  (setq my/typst--watch-process nil))
+
+(defun my/typst--pdf-buffer ()
+  (when (buffer-live-p my/typst--preview-buffer)
+    my/typst--preview-buffer))
+
+(defun my/typst--refresh-pdf (&rest _)
+  "Revert preview PDF buffer in place, безопасно к гонкам."
+  (let ((buf (my/typst--pdf-buffer)))
+    (when buf
+      (with-current-buffer buf
+        (when (and (derived-mode-p 'pdf-view-mode)
+                   (file-exists-p (buffer-file-name)))
+          (condition-case err
+              (pdf-view-revert-buffer nil t)
+            (error (message "PDF refresh failed: %s" err))))))))
+
+(defun my/typst--schedule-refresh ()
+  "Debounce-перерисовка PDF: watch печатает несколько строк подряд."
+  (when my/typst--refresh-timer
+    (cancel-timer my/typst--refresh-timer))
+  (setq my/typst--refresh-timer
+        (run-at-time 0.2 nil #'my/typst--refresh-pdf)))
+
+(defun my/typst--compile-sync ()
+  "Синхронная компиляция в PDF. Возвращает t при успехе."
+  (zerop (call-process typst-executable-location
+                       nil "*typst-compile*" nil
+                       "compile"
+                       (buffer-file-name)
+                       (my/typst--pdf-file))))
+
+(defun my/typst--compile-async ()
+  "Compile current file to PDF in background (fallback без watch)."
+  (when (buffer-file-name)
+    (let ((proc (start-process
+                 "typst-compile" "*typst-compile*"
+                 typst-executable-location "compile"
+                 (buffer-file-name) (my/typst--pdf-file))))
+      (set-process-sentinel
+       proc
+       (lambda (_p _e) (my/typst--refresh-pdf))))))
+
+(defun my/typst--on-save ()
+  "Вызывается при сохранении .typ."
+  (when (my/typst--pdf-buffer)
+    (if (my/typst--watch-alive-p)
+        ;; watch сам перекомпилирует → process-filter вызовет refresh.
+        nil
+      (my/typst--compile-async))))
+
+(defun my/typst--open-pdf-window ()
+  "Open PDF next to source, remember buffer."
+  (let* ((pdf (my/typst--pdf-file))
+         (buf nil))
+    (unless (file-exists-p pdf)
+      (user-error "PDF не появился: %s" pdf))
+    (setq buf (find-file-noselect pdf))
+    (setq my/typst--preview-buffer buf)
+    (if (> (window-total-width) 140)
+        (display-buffer-in-side-window
+         buf
+         '((side . right)
+           (window-width . 0.45)
+           (dedicated . t)))
+      (display-buffer
+       buf
+       '((display-buffer-reuse-window display-buffer-pop-up-window)
+         (window-width . 0.5))))
+    (with-current-buffer buf
+      (pdf-view-mode)
+      (pdf-view-fit-page-to-window)
+      (display-line-numbers-mode -1)
+      (setq-local mode-line-format
+                  (list " " mode-line-buffer-identification "  [typst preview] ")))
+    buf))
+
+(defun my/typst-live-preview ()
+  "Start live preview: typst watch + PDF в соседнем окне."
+  (interactive)
+  (unless (buffer-file-name)
+    (user-error "Буфер не сохранён в файл"))
+  (unless (executable-find typst-executable-location)
+    (user-error "typst не найден в PATH"))
+  (save-buffer)
+
+  ;; Первая компиляция — синхронно, чтобы PDF был валиден к моменту открытия.
+  (unless (my/typst--compile-sync)
+    (user-error "typst compile упал, смотри *typst-compile*"))
+
+  (my/typst--stop-watch)
+  (let* ((input (file-name-nondirectory (buffer-file-name)))
+         (output (concat (file-name-sans-extension input) ".pdf"))
+         (default-directory (file-name-directory (buffer-file-name))))
+    (setq my/typst--watch-process
+          (make-process
+           :name "typst-watch"
+           :buffer "*typst-watch*"
+           :command (list typst-executable-location "watch" input output)
+           ;; watch печатает в stdout после каждой перекомпиляции.
+           :filter (lambda (_proc _output)
+                     (my/typst--schedule-refresh))
+           :sentinel
+           (lambda (p _e)
+             (unless (process-live-p p)
+               (message "typst watch остановлен")))))
+    (message "typst watch запущен"))
+  (my/typst--open-pdf-window))
+
+(defun my/typst-stop-preview ()
+  "Stop watch and close preview PDF."
+  (interactive)
+  (my/typst--stop-watch)
+  (when my/typst--refresh-timer
+    (cancel-timer my/typst--refresh-timer)
+    (setq my/typst--refresh-timer nil))
+  (let ((buf (my/typst--pdf-buffer)))
+    (when buf
+      (setq my/typst--preview-buffer nil)
+      (when-let ((win (get-buffer-window buf)))
+        (delete-window win))
+      (kill-buffer buf)))
+  (message "Typst preview остановлен"))
+
+(defun my/typst-compile ()
+  "Compile current file to PDF once (synchronously)."
+  (interactive)
+  (unless (buffer-file-name)
+    (user-error "Буфер не сохранён в файл"))
+  (save-buffer)
+  (if (my/typst--compile-sync)
+      (message "Скомпилировано: %s" (my/typst--pdf-file))
+    (message "Ошибка компиляции — смотри *typst-compile*")))
+
+(defun my/typst--bind-keys ()
+  "Evil/C-c bindings for typst buffers."
+  (when (featurep 'evil)
+    (evil-define-key 'normal typst-mode-map
+      (kbd "C-c C-c") #'my/typst-compile
+      (kbd "C-c C-p") #'my/typst-live-preview
+      (kbd "C-c C-s") #'my/typst-stop-preview
+      (kbd "C-c C-r") #'my/typst--refresh-pdf)))
+
+(with-eval-after-load 'general
+  (with-eval-after-load 'typst-mode
+    (my-leader-def :keymaps 'typst-mode-map
+      "m c" #'my/typst-compile
+      "m p" #'my/typst-live-preview
+      "m s" #'my/typst-stop-preview
+      "m r" #'my/typst--refresh-pdf)))
+#+end_src
+
+* Dired & File Management
+
+Dired is replaced by =dirvish=, which adds icons, Git state, file sizes and
+times, a header with the path and free space, and quick sorting.  Evil keys
+navigate the tree and manage files, while =dired-ranger= provides copy, move,
+and paste.  Deletion confirmations are disabled, recursive operations run
+silently, and deleted files go to the Trash.
+
+#+begin_src emacs-lisp
+;;; setup-dired.el --- Dired + Dirvish + Evil -*- lexical-binding: t; -*-
+
+(use-package dired-ranger
+  :ensure t
+  :defer t)
+
+(use-package dirvish
+  :ensure t
+  :init
+  (dirvish-override-dired-mode)
+  :config
+  ;; ---- внешний вид ----
+  (setq dirvish-attributes '(nerd-icons vc-state file-size file-time))
+  (setq dirvish-subtree-state-style 'nerd)
+  (setq dirvish-path-separators '("  " "  " "  "))
+
+  ;; ---- toggle-sort по "O" ----
+  (defun my/dirvish-toggle-sort ()
+    "Переключает сортировку Dirvish между лексикографической и по дате."
+    (interactive)
+    (let ((current (dired-get-filename nil t)))
+      (if (string-match-p "time" (or dired-actual-switches ""))
+          (dirvish-quicksort "name")
+        (dirvish-quicksort "time"))
+      (when current
+        (dired-goto-file current))))
+
+  (define-key dirvish-mode-map (kbd "O") #'my/dirvish-toggle-sort)
+
+  ;; ---- fd ----
+  (when (executable-find "fd")
+    (require 'dirvish-fd nil t))
+
+  ;; ---- evil-биндинги для dirvish ----
+  (with-eval-after-load 'evil
+    (evil-make-overriding-map dirvish-mode-map 'normal)
+    (evil-define-key 'normal dirvish-mode-map
+      "n"  'evil-ex-search-next
+      "N"  'evil-ex-search-previous
+      "G"  'end-of-buffer
+      "gg" 'evil-goto-first-line)))
+
+;; ---- биндинги для классического dired ----
+(defun my/dired-evil-bindings ()
+  "Мои кастомные биндинги для dired в evil-mode."
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal dired-mode-map
+      "h" 'dired-up-directory
+      "l" 'dired-find-file
+      "a" 'dired-create-empty-file
+      "A" 'dired-create-directory
+      "c" 'dired-ranger-copy
+      "M" 'dired-ranger-move
+      "p" 'dired-ranger-paste
+      "d" 'dired-do-delete
+      "i" 'wdired-change-to-wdired-mode
+      "m" 'dired-mark
+      "w" 'dirvish-copy-file-path)
+    (evil-define-key 'visual dired-mode-map
+      "m" 'dired-mark)))
+
+(add-hook 'dired-mode-hook #'my/dired-evil-bindings)
+
+;; ---- dired настройки ----
+(setq dired-listing-switches
+      "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
+
+(setq dirvish-header-line-format '(:left (path) :right (free-space)))
+(setq dirvish-hide-cursor t)
+(add-hook 'dired-mode-hook (lambda () (setq-local evil-normal-state-cursor nil)))
+
+(setq dirvish-use-header-line 'global)
+(setq dirvish-mode-line-bar-image-width 0)
+(setq dirvish-header-line-height '(25 . 35))
+(setq dirvish-mode-line-height 25)
+(setq dirvish-mode-line-format
+      '(:left (sort file-time " " file-size symlink) :right (omit yank index)))
+
+;; ---- БЕЗ ПОДТВЕРЖДЕНИЙ ----
+;; dired: x → dired-do-flagged-delete
+(setq dired-deletion-confirmer (lambda (_) t))
+;; dired: d → dired-do-delete
+(setq dired-no-confirm '(delete))
+;; рекурсивные операции — молча
+(setq dired-recursive-deletes 'always)
+(setq dired-recursive-copies  'always)
+;; ibuffer: x → ibuffer-do-delete
+(setq ibuffer-confirm-operation-on nil)
+
+(use-package dirvish-fd
+  :ensure nil
+  :after dirvish
+  :config
+  (setq dirvish-fd-switches ""))
+
+(blink-cursor-mode -1)
+(setq delete-by-moving-to-trash t)
+#+end_src
+
+* Version Control (Magit)
+
+Magit is bound to =C-x g= for status and =C-x M-g= for dispatch.  A custom
+display function keeps diff, log, and revision buffers in a bottom window,
+while all other Magit buffers reuse the selected window.  A matching advice
+deletes that popup window when Magit is buried.
+
+#+begin_src emacs-lisp
+(defun my/magit-display-buffer (buffer)
+  "Display BUFFER for Magit.
+Diff/log/revision buffers open in a window at the bottom of the
+selected frame; everything else opens in the selected window.
+Uses `split-window-below' directly so it is not affected by the
+`split-window-sensibly' advice in `setup-ui.el'."
+  (if (with-current-buffer buffer
+        (derived-mode-p 'magit-diff-mode
+                        'magit-revision-mode
+                        'magit-log-mode))
+      (let ((win (get-buffer-window buffer)))
+        (unless (window-live-p win)
+          (let* ((total (window-height (selected-window)))
+                 (size  (max 10 (round (* 0.4 total)))))
+            (setq win (split-window-below size))
+            ;; помечаем: это окно создали мы, при bury его надо убить
+            (set-window-parameter win 'my/magit-popup t)))
+        (set-window-buffer win buffer)
+        (select-window win)
+        win)
+    (display-buffer buffer '(display-buffer-same-window))))
+
+(defun my/magit-bury-a (orig &rest args)
+  "Run ORIG (bury), then delete the popup window we created for it."
+  (let ((win (selected-window)))
+    (prog1 (apply orig args)
+      (when (and (window-live-p win)
+                 (window-parameter win 'my/magit-popup)
+                 (not (one-window-p)))
+        (delete-window win)))))
+
+(advice-add 'magit-mode-bury-buffer :around #'my/magit-bury-a)
+
+(use-package magit
+  :ensure t
+  :bind (("C-x g"   . magit-status)
+         ("C-x M-g" . magit-dispatch))
+  :config
+  (setq magit-display-buffer-function #'my/magit-display-buffer))
+#+end_src
+
+* Custom Utilities & Global Modes
+
+This section holds personal helpers and global modes that do not belong to a
+package.  Auto-revert refreshes buffers silently when files change and
+electric-pair closes brackets.  =add-songs= collects track lines into a
+=Tracks= section, and two commands kill Org Roam or Magit buffers in bulk.
+
+#+begin_src emacs-lisp
+(require 'org)
+
+(defun add-songs ()
+  "Собрать все строки треков (- ...) из текущего Org-файла
+и поместить их единым списком под заголовком * Tracks в конце буфера."
+  (interactive)
+  (save-excursion
+        (goto-char (point-min))
+    (when (re-search-forward "^\* Tracks\\(\\s-\\|$\\)" nil t)
+      (beginning-of-line)
+      (org-mark-subtree)
+      (delete-region (region-beginning) (region-end))
+      (message "Старая секция Tracks удалена."))
+        (let (tracks)
+      (goto-char (point-min))
+      (while (re-search-forward "^\\([ \t]*\\)- \\(.*\\)" nil t)
+        (push (match-string 2) tracks))
+      (setq tracks (nreverse tracks))
+            (goto-char (point-max))
+            (unless (bolp) (insert "\n"))
+      (unless (looking-back "\n\n" nil)
+        (insert "\n"))
+      (insert "* Tracks\n")
+      (dolist (track tracks)
+        (insert "- " track "\n"))
+      (message "Добавлено %d треков в * Tracks." (length tracks)))))
+(global-auto-revert-mode 1)
+(setq auto-revert-verbose nil)   ; silence "Reverting buffer ..." messages
+(electric-pair-mode t)
+
+(defun my/kill-org-roam-buffers ()
+  "Kill all Org-roam buffers (files under `org-roam-directory').
+Does not kill the org-roam side buffer (`*org-roam*')."
+  (interactive)
+  (let ((roam-dir (file-truename org-roam-directory))
+        (count 0))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (when (and buffer-file-name
+                   (string-prefix-p roam-dir (file-truename buffer-file-name)))
+          (kill-buffer buf)
+          (setq count (1+ count)))))
+    (message "Killed %d org-roam buffer(s)" count)))
+
+(defun my/kill-all-magit-buffers ()
+  "Kill all Magit-related buffers (status, diffs, logs, processes, etc.)."
+  (interactive)
+  (let ((count 0))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        ;; Проверяем, что это Magit-буфер либо по имени, либо по major-mode
+        (when (or (string-prefix-p "*magit" (buffer-name buf))
+                  (and major-mode
+                       (string-prefix-p "magit-" (symbol-name major-mode))))
+          (kill-buffer buf)
+          (setq count (1+ count)))))
+    (message "Killed %d Magit buffer(s)" count)))
+#+end_src
+
+* Typing Trainer (Monkeytype)
+
+=monkeytype= is a typing-practice package.  Word lists are read from
+=~/.monkeytype/=, and words are shuffled randomly on each run.
+
+#+begin_src emacs-lisp
+(use-package monkeytype)
+
+(setq monkeytype-directory "~/.monkeytype/")
+
+(setq monkeytype-randomize t)
+#+end_src
+
+* Disabled: org-to-cal
+
+This package lives in =elisp/org-to-cal/= and is intentionally disabled.  It
+exported Org items tagged =:ical:= to macOS Calendar through either an HTTP
+subscription server or a direct EventKit importer.  Everything else in this
+configuration, including Org Agenda and calfw, continues to work without it.
+
+** Why it is disabled
+
+The original reason was not recorded in the configuration.  TODO: user to fill
+in.
+
+** How to re-enable
+
+Uncomment the source block below and restart Emacs.  The old =load-path= entry
+was required because the package is not installed from ELPA.
+
+#+begin_src emacs-lisp
+;; DISABLED: org-to-cal — uncomment to activate.
+;; (add-to-list 'load-path (expand-file-name "elisp/org-to-cal" user-emacs-directory))
+;; (require 'org-to-cal)
+;; (customize-set-variable 'org-to-cal-sync-method 'direct-import)
+;; (customize-set-variable 'org-to-cal-tag "ical")
+;; (customize-set-variable 'org-to-cal-target-calendar "Org")
+;; (org-to-cal-mode 1)
+#+end_src
+
+** Installed LaunchAgents
+
+Disabling the Emacs package does not uninstall LaunchAgents that were
+previously installed.  If the direct-import or server method was installed,
+unload it once with =launchctl= or re-enable the package temporarily and run
+=M-x org-to-cal-uninstall=.
+
+#+begin_src emacs-lisp :comments no
+;;; config.el ends here
+#+end_src

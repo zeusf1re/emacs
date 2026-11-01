@@ -1,9 +1,12 @@
-# --- Пакеты (восстанавливаются сами) ---
+# --- Tangled output (generated from config.org) ---
+config.el
+
+# --- Packages (restored automatically) ---
 elpa/
 elpaca/
 eln-cache/
 
-# --- Кэш / runtime ---
+# --- Cache / runtime state ---
 .cache/
 tmp/
 auto-save-list/
@@ -13,7 +16,7 @@ games/
 tutorial/
 url/
 
-# --- Личное / сессии (не конфиг) ---
+# --- Personal data / sessions (not configuration) ---
 bookmarks
 projects
 tramp
@@ -26,20 +29,13 @@ recentf
 .clang-tidy
 .DS_Store/
 
-# --- Скрытые мусорные файлы ---
+# --- Temporary editor files ---
 *~
 \#*\#
 .\#*
 
-# --- Other ---
-.mc-lists.el
-.projectile
-bookmarks
-projectile-bookmarks.eld
-projects
-recentf
-tramp
+# --- Org and transient state ---
 transient/
-
+lisp.bak/
 org-roam.db
 .org-id-locations
