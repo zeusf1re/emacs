@@ -28,6 +28,8 @@ recentf
 .clang-format
 .clang-tidy
 .DS_Store/
+.DS_Store
+.DS_Store
 
 # --- Temporary editor files ---
 *~

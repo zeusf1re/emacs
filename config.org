@@ -8,10 +8,6 @@ startup, =init.el= tangles it to =config.el= with Org Babel and loads the
 result.  =early-init.el= stays a plain Emacs Lisp file because it runs before
 Org and =org-babel-load-file= are available.
 
-The old modular files are kept in =lisp.bak/= so the refactor can be rolled
-back.  Prose and comments are in English; existing code strings, identifiers,
-and docstrings are preserved as they were.
-
 * Bootstrap & Early Init
 
 =early-init.el= runs before the package system and before the first frame is
@@ -35,6 +31,8 @@ trees and Git status clean.  Lock files are disabled completely.
 ;;; config.el --- Tangled from config.org -*- lexical-binding: t; -*-
 #+end_src
 
+#+RESULTS:
+
 #+begin_src emacs-lisp
 (setq backup-directory-alist
       `(("." . ,(expand-file-name "tmp/backups/" user-emacs-directory))))
@@ -45,6 +43,8 @@ trees and Git status clean.  Lock files are disabled completely.
 
 (setq create-lockfiles nil)
 #+end_src
+
+#+RESULTS:
 
 * Package Management (Elpaca)
 
@@ -98,6 +98,9 @@ The =compat= package is pinned to GNU-devel because newer packages expect it.
   :ensure (:source "gnu-devel" :package "compat"))
 #+end_src
 
+#+RESULTS:
+: [nil 27376 39580 740507 nil elpaca-process-queues nil nil 0 nil]
+
 * Core Editing Defaults
 
 These settings define the editor before any package hooks run: four-space
@@ -120,6 +123,9 @@ are truncated instead of wrapped, and the bell is disabled.
 (setq ring-bell-function 'ignore)
 #+end_src
 
+#+RESULTS:
+: ignore
+
 * Custom File
 
 =custom.el= is written by Emacs' Custom interface at runtime and is not
@@ -133,148 +139,293 @@ rewriting =config.org= behind your back.
 (load custom-file :no-error-if-file-is-missing)
 #+end_src
 
-* Evil & Keybindings
+#+RESULTS:
+: t
 
-Evil provides Vim-style modal editing, and =evil-collection= extends it to
-built-in modes.  Dashboard is removed from =evil-collection= because its
-bindings conflict with the dashboard package.  =general= defines the =SPC=
-leader map used throughout the rest of the configuration.
+* Meow & Keybindings
+
+Meow provides modal editing with a selection-first model: select text with a
+motion or a "thing" command, then act on the selection.  Four states matter
+here.  Normal state holds the editing commands, insert state types text,
+motion state is used in special buffers (Dired, Agenda, PDF, Magit, ...) where
+the mode's own keys stay available, and keypad state replaces =C-x= and =M-x=
+chords.  The layout is QWERTY.
+
+meow-leader-define-key
+
+=SPC= is the leader key in normal and motion state.  =SPC= followed by a key
+sequence runs the custom bindings defined with =meow-leader-define-key= (the
+same combinations the old leader map used), and =SPC SPC= opens
+=meow-keypad=.  Inside the keypad Meow normally treats =SPC= as its "literal"
+prefix, so that role is moved to backslash to free =SPC= for this binding.
+
+Motion state binds =j= and =k= to =my/meow-motion-next= and
+=my/meow-motion-prev=.  They behave like =meow-next= and =meow-prev= everywhere
+except in the modes listed in =my/meow-motion-line-commands= (Agenda, calfw,
+PDF), where they call that mode's own item or page commands.  The remaining
+mode-specific keys (Dired, Agenda, calfw) are defined in their own sections.
+Meow has no visual state, so there is nothing to map for it; selections are
+made with the normal-state commands instead.
 
 #+begin_src emacs-lisp
-(use-package evil
-  :ensure t
-  :demand t
-  :init
-  (setq evil-want-integration t)
-  (setq evil-respect-visual-line-mode t)
-  (setq evil-want-keybinding nil)
-  :config
-  (evil-mode 1))
+    (defvar my/meow-motion-line-commands
+      '((org-agenda-mode     org-agenda-next-item
+                             org-agenda-previous-item)
+        (calfw-calendar-mode calfw-navi-next-week-command
+                             calfw-navi-previous-week-command)
+        (pdf-view-mode       pdf-view-next-line-or-next-page
+                             pdf-view-previous-line-or-previous-page))
+      "Per-mode commands for j/k in Meow motion state.
+    Each entry is (MODE NEXT-COMMAND PREVIOUS-COMMAND).  Buffers whose major mode
+    is not listed fall back to `meow-next' and `meow-prev'.")
 
-(use-package evil-collection
-  :after evil
-  :config
-  (setq evil-collection-mode-list (remove 'dashboard evil-collection-mode-list))
-  (evil-collection-init))
+    (defun my/meow--motion-line-command (index fallback)
+      "Return the command at INDEX of the entry for the current mode, or FALLBACK."
+      (let ((entry (seq-find (lambda (e) (derived-mode-p (car e)))
+                             my/meow-motion-line-commands)))
+        (if entry (nth index entry) fallback)))
 
-(use-package general
-  :demand t
-  :config
-  (general-create-definer my-leader-def
-    :prefix "SPC"
-    :states '(normal visual motion)
-    :keymaps 'override)
+    (defun my/meow-motion-next ()
+      "Move to the next line or item, using the mode's own command if it has one."
+      (interactive)
+      (call-interactively (my/meow--motion-line-command 1 #'meow-next)))
 
-  (my-leader-def
-    "." 'find-file
-    "," 'consult-buffer
-    ":" 'execute-extended-command
+    (defun my/meow-motion-prev ()
+      "Move to the previous line or item, using the mode's own command if it has one."
+      (interactive)
+      (call-interactively (my/meow--motion-line-command 2 #'meow-prev)))
 
+    (defun my/meow-setup ()
+      "Configure Meow keys: QWERTY layout, motion, leader and normal state."
+      (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
 
-    "b b" 'switch-to-buffer
-    "b k" 'kill-current-buffer
-    "b i" 'ibuffer
-    "b B" 'ibuffer
+      ;; Inside the keypad Meow uses SPC as its "literal" prefix.  Move that role
+      ;; to backslash so `SPC SPC' can be bound to `meow-keypad' below.
+      (setq meow-keypad-literal-prefix ?\\)
 
-    "w q" 'delete-window
-    "w v" 'split-window-right
-    "w s" 'split-window-below
-    "w h" 'evil-window-left
-    "w j" 'evil-window-down
-    "w k" 'evil-window-up
-    "w l" 'evil-window-right
-    "w c" 'delete-window
-    "w o" 'delete
+      ;; ---- Motion state (Dired, Agenda, PDF, Magit, ...) ----
+      (meow-motion-overwrite-define-key
+       '("j" . my/meow-motion-next)
+       '("k" . my/meow-motion-prev)
+       '("<escape>" . ignore))
+      (setq meow-keypad-start-keys nil)
+      ;; ---- Leader: SPC <keys> ----
+      (meow-leader-define-key
+       ;; SPC SPC opens the keypad (the C-x / M-x replacement)
+       '("SPC" . meow-keypad)
 
-    "w ." 'enlarge-window-horizontally
-    "w ," 'shrink-window-horizontally
-    "w +" 'enlarge-window
-    "w -" 'shrink-window
+       ;; SPC <digit> = digit argument
+       '("1" . meow-digit-argument)
+       '("2" . meow-digit-argument)
+       '("3" . meow-digit-argument)
+       '("4" . meow-digit-argument)
+       '("5" . meow-digit-argument)
+       '("6" . meow-digit-argument)
+       '("7" . meow-digit-argument)
+       '("8" . meow-digit-argument)
+       '("9" . meow-digit-argument)
+       '("0" . meow-digit-argument)
+       '("?" . meow-cheatsheet)
 
-    "q q" 'save-buffers-kill-emacs
+       '("." . find-file)
+       '("," . consult-buffer)
+       '(":" . execute-extended-command)
+       '(";" . meow-comment)
 
-    "f g" 'consult-find
-    "f s" 'consult-ripgrep
+       '("b b" . switch-to-buffer)
+       '("b k" . kill-current-buffer)
+       '("b i" . ibuffer)
+       '("b B" . ibuffer)
 
-    "p p" 'projectile-switch-project
-    "p f" 'projectile-find-file
+       '("w q" . delete-window)
+       '("w v" . split-window-right)
+       '("w s" . split-window-below)
+       '("w h" . windmove-left)
+       '("w j" . windmove-down)
+       '("w k" . windmove-up)
+       '("w l" . windmove-right)
+       '("w c" . delete-window)
+       '("w o" . delete)
 
-    "t t" 'vterm
-    "f p" (lambda () (interactive) (find-file "~/.config/emacs/init.el"))
+       '("w ." . enlarge-window-horizontally)
+       '("w ," . shrink-window-horizontally)
+       '("w +" . enlarge-window)
+       '("w -" . shrink-window)
 
-    "c a" 'lsp-execute-code-action
-    "c r" 'lsp-rename
-    "c e" 'lsp-ui-doc-show
-    "c g d" 'lsp-find-references
+       '("q q" . save-buffers-kill-emacs)
+       '("s" . (lambda () (interactive) (save-some-buffers t)))
+       
+       
+       '("f g" . consult-find)
+       '("f s" . consult-ripgrep)
 
-    "c c" 'compile
+       '("p p" . projectile-switch-project)
+       '("p f" . projectile-find-file)
 
-    "/"   'consult-line
+       '("t t" . vterm)
+       (cons "f p" (lambda () (interactive) (find-file "~/.config/emacs/config.org")))
 
-    "a c" 'calfw-org-open-calendar
-    "a a" 'org-agenda
-    "a t" 'org-timestamp
-    "a d" 'org-deadline
-    "a s" 'org-schedule
-    "a i" 'org-clock-in
-    "a o" 'org-clock-out
-    "a l" 'org-clock-in-last
-    "a n" 'org-add-note
-    "a q" 'org-set-tags-command
-    "a k" 'my/agenda-capture-smart
-    "a e" 'org-set-effort
+       '("c a" . lsp-execute-code-action)
+       '("c r" . lsp-rename)
+       '("c e" . lsp-ui-doc-show)
+       '("c g d" . lsp-find-references)
+       ;; Replacements for the old Vim-style g d, g r and K in lsp-mode buffers
+       '("c d" . lsp-find-definition)
+       '("c g r" . lsp-find-references)
+       '("c k" . lsp-ui-doc-show)
 
-    "h b" 'describe-bindings
-    "h k" 'describe-key
-    "h m" 'describe-mode
-    "h v" 'describe-variable
-    "h f" 'describe-function
-    "h s" 'describe-face
+       '("c c" . compile)
 
-    "o l" 'org-latex-preview
-    "o L" 'my/org-latex-preview-all
+       '("/" . consult-line)
 
-    "d"   'dashboard-open
+       '("a c" . calfw-org-open-calendar)
+       '("a a" . org-agenda)
+       '("a t" . org-timestamp)
+       '("a d" . org-deadline)
+       '("a s" . org-schedule)
+       '("a i" . org-clock-in)
+       '("a o" . org-clock-out)
+       '("a l" . org-clock-in-last)
+       '("a n" . org-add-note)
+       '("a q" . org-set-tags-command)
+       '("a k" . my/agenda-capture-smart)
+       '("a e" . org-set-effort)
 
-    "m s" 'magit-status
-    "g s" 'magit-status
-    "m k" 'my/kill-all-magit-buffers
+       '("h b" . describe-bindings)
+       '("h k" . describe-key)
+       '("h m" . describe-mode)
+       '("h v" . describe-variable)
+       '("h f" . describe-function)
+       '("h s" . describe-face)
 
-    "r f f" 'org-roam-node-find
-    "r f t" 'my/org-roam-node-find-by-tag
-    "r i" 'org-roam-node-insert
-    "r I" 'org-roam-node-insert-immediate
-    "r c" 'org-roam-capture
-    "r l" 'org-roam-buffer-toggle
-    "r D" 'org-roam-dailies-capture-today
-    "r d d" 'org-roam-dailies-goto-today
-    "r d t" 'org-roam-dailies-goto-tomorrow
-    "r d y" 'org-roam-dailies-goto-yesterday
-    "r d D" 'org-roam-dailies-capture-today
-    "r d T" 'org-roam-dailies-capture-tomorrow
-    "r d Y" 'org-roam-dailies-capture-yesterday
-    "r t" 'org-roam-tag-add
-    "r G " 'org-roam-graph
-    "r g " 'org-roam-ui-open
-    "r u" 'org-roam-ui-open
-    "r k" 'my/kill-org-roam-buffers
-    ))
+       '("o l" . org-latex-preview)
+       '("o L" . my/org-latex-preview-all)
+       '("o b b" . org-babel-execute-buffer)
+       '("o b s" . org-babel-execute-src-block)
+       '("o h" . consult-org-heading)
 
-(defun my-evil-syntax-fix ()
-  (modify-syntax-entry ?_ "w")
-  (modify-syntax-entry ?- "w"))
+       '("d" . dashboard-open)
 
-(add-hook 'prog-mode-hook 'my-evil-syntax-fix)
-(add-hook 'text-mode-hook 'my-evil-syntax-fix)
+       '("m s" . magit-status)
+       '("g s" . magit-status)
+       '("m k" . my/kill-all-magit-buffers)
 
-(global-set-key [escape] 'keyboard-escape-quit)
+       '("r f f" . org-roam-node-find)
+       '("r f t" . my/org-roam-node-find-by-tag)
+       '("r i" . org-roam-node-insert)
+       '("r I" . org-roam-node-insert-immediate)
+       '("r c" . org-roam-capture)
+       '("r l" . org-roam-buffer-toggle)
+       '("r D" . org-roam-dailies-capture-today)
+       '("r d d" . org-roam-dailies-goto-today)
+       '("r d t" . org-roam-dailies-goto-tomorrow)
+       '("r d y" . org-roam-dailies-goto-yesterday)
+       '("r d D" . org-roam-dailies-capture-today)
+       '("r d T" . org-roam-dailies-capture-tomorrow)
+       '("r d Y" . org-roam-dailies-capture-yesterday)
+       '("r t" . org-roam-tag-add)
+       '("r G " . org-roam-graph)
+       '("r g " . org-roam-ui-open)
+       '("r u" . org-roam-ui-open)
+       '("r k" . my/kill-org-roam-buffers))
 
-(use-package evil-commentary
-  :ensure t
-  :after evil
-  :config
-  (evil-commentary-mode 1))
+      ;; hook_for_binds
+      ;; hook-for-binds
+
+      ;; ---- Normal state (QWERTY layout) ----
+      (meow-normal-define-key
+       '("0" . meow-expand-0)
+       '("9" . meow-expand-9)
+       '("8" . meow-expand-8)
+       '("7" . meow-expand-7)
+       '("6" . meow-expand-6)
+       '("5" . meow-expand-5)
+       '("4" . meow-expand-4)
+       '("3" . meow-expand-3)
+       '("2" . meow-expand-2)
+       '("1" . meow-expand-1)
+       '("-" . negative-argument)
+       '(";" . meow-reverse)
+       '("," . meow-inner-of-thing)
+       '("." . meow-bounds-of-thing)
+       '("<" . meow-beginning-of-thing)
+       '(">" . meow-end-of-thing)
+       '("a" . meow-append)
+       '("A" . meow-open-below)
+       '("b" . meow-back-word)
+       '("B" . meow-back-symbol)
+       '("c" . meow-change)
+       '("d" . meow-delete)
+       '("D" . meow-backward-delete)
+       '("e" . meow-next-word)
+       '("E" . meow-next-symbol)
+       '("f" . meow-find)
+       '("g" . meow-cancel-selection)
+       '("G" . meow-grab)
+       '("h" . meow-left)
+       '("H" . meow-left-expand)
+       '("i" . meow-insert)
+       '("I" . meow-open-above)
+       '("j" . meow-next)
+       '("J" . meow-next-expand)
+       '("k" . meow-prev)
+       '("K" . meow-prev-expand)
+       '("l" . meow-right)
+       '("L" . meow-right-expand)
+       '("m" . meow-join)
+       '("n" . meow-search)
+       '("o" . meow-block)
+       '("O" . meow-to-block)
+       '("p" . meow-yank)
+       '("q" . meow-quit)
+       '("Q" . meow-goto-line)
+       '("r" . meow-replace)
+       '("R" . meow-swap-grab)
+       '("s" . meow-kill)
+       '("t" . meow-till)
+       '("u" . meow-undo)
+       '("U" . meow-undo-in-selection)
+       '("v" . meow-visit)
+       '("/" . meow-visit)
+       '("w" . meow-mark-word)
+       '("W" . meow-mark-symbol)
+       '("x" . meow-line)
+       '("X" . meow-goto-line)
+       '("y" . meow-save)
+       '("Y" . meow-sync-grab)
+       '("z" . meow-pop-selection)
+       '("'" . repeat)
+       ;; Commenting (replaces the old commentary operator)
+       '("#" . meow-comment)
+       '("<escape>" . meow-cancel-selection)))
+
+    (use-package meow
+      :ensure t
+      :demand t
+      :config
+      (my/meow-setup)
+
+      ;; Modes that should start in a specific Meow state.  Special buffers use
+      ;; motion state so their own keys keep working; vterm types into the
+      ;; terminal in insert state.
+      (dolist (entry '((org-agenda-mode . motion)
+                       (dired-mode . motion)
+                       (dirvish-mode . motion)
+                       (calfw-calendar-mode . motion)
+                       (pdf-view-mode . motion)
+                       (org-roam-buffer-mode . motion)
+                       (vterm-mode . insert)))
+        (add-to-list 'meow-mode-state-list entry))
+
+      (meow-global-mode 1))
+
+    (setq meow-use-clipboard t)
+
+  (global-set-key [escape] 'keyboard-escape-quit)
 #+end_src
+  
+#+RESULTS:
+: keyboard-escape-quit
 
 * UI & Theme
 
@@ -436,6 +587,9 @@ display action (side window at the bottom)."
   (setq colorful-highlight-in-comments nil))
 #+end_src
 
+#+RESULTS:
+: [nil 27376 39580 762720 nil elpaca-process-queues nil nil 0 nil]
+
 * Completion & Minibuffer
 
 Vertico renders the minibuffer as a vertical list, and =vertico-directory=
@@ -527,6 +681,9 @@ switching, and ripgrep, while Cape adds extra completion backends.
   :ensure t)
 #+end_src
 
+#+RESULTS:
+: [nil 27376 39580 765586 nil elpaca-process-queues nil nil 0 nil]
+
 * Language Server Protocol (LSP)
 
 LSP starts automatically in C, C++, and Python.  clangd gets background
@@ -559,11 +716,9 @@ inline diagnostics, clang-format on save, and Cape completion integration.
     (set-face-attribute 'lsp-face-semhl-variable nil :background nil)
     (set-face-attribute 'lsp-face-semhl-function nil :background nil)))
 
-(with-eval-after-load 'lsp-mode
-  (evil-define-key 'normal lsp-mode-map
-    (kbd "g d") 'lsp-find-definition
-    (kbd "g r") 'lsp-find-references
-    (kbd "K")   'lsp-ui-doc-show))
+;; The old Vim-style g d, g r and K bindings now live on the leader map
+;; (`SPC c d', `SPC c g r' and `SPC c k'): Meow already uses `g' to cancel
+;; the selection and `K' to expand the selection upwards.
 (with-eval-after-load 'lsp-mode
   (setq lsp-disabled-clients '(semgrep-ls pyls ty-ls ruff pylsp))
 
@@ -624,6 +779,8 @@ inline diagnostics, clang-format on save, and Cape completion integration.
   (advice-add 'lsp-completion-at-point :around #'cape-wrap-buster))
 #+end_src
 
+#+RESULTS:
+
 * Help & Discoverability
 
 =which-key= shows available continuations after a prefix is pressed.  A short
@@ -635,6 +792,9 @@ delay keeps it unobtrusive while making the leader bindings discoverable.
   :config
   (setq which-key-idle-delay 0.3))
 #+end_src
+
+#+RESULTS:
+: [nil 27376 39580 769285 nil elpaca-process-queues nil nil 0 nil]
 
 * Projects (Projectile)
 
@@ -649,6 +809,9 @@ file.
   (setq projectile-project-search-path '("~/prog/")
         projectile-switch-project-action #'projectile-dired))
 #+end_src
+
+#+RESULTS:
+: [nil 27376 39580 770552 nil elpaca-process-queues nil nil 0 nil]
 
 * Terminal (vterm)
 
@@ -666,8 +829,12 @@ triggering the leader map.
   :config
   (setq vterm-max-scrollback 10000)
 
-  (evil-define-key 'insert vterm-mode-map (kbd "SPC") #'vterm--self-insert))
+  ;; Insert state does not bind SPC, so this keeps SPC going to the terminal.
+  (define-key vterm-mode-map (kbd "SPC") #'vterm--self-insert))
 #+end_src
+
+#+RESULTS:
+: [nil 27376 39580 771693 nil elpaca-process-queues nil nil 0 nil]
 
 * PDF & Documents
 
@@ -688,6 +855,8 @@ without a build prompt, and line numbers are hidden while reading.
   :hook (pdf-view-mode . pdf-view-restore-mode))
 (setq pdf-view-continuous nil)
 #+end_src
+
+#+RESULTS:
 
 * Org Mode
 
@@ -717,6 +886,7 @@ and Org, and evaluation confirmation is off.
         (setq org-startup-with-inline-images t)
     (setq org-image-actual-width '(300))
     (setq org-return-follows-link t)
+(add-hook 'org-mode-hook (lambda () (electric-indent-local-mode -1)))
     (setq org-hide-emphasis-markers t)
     (setq org-ellipsis " ▾")
 
@@ -780,6 +950,9 @@ and Org, and evaluation confirmation is off.
 (setq org-babel-python-command "python3")
 #+end_src
 
+#+RESULTS:
+: python3
+
 ** LaTeX Export and Formula Preview
 
 Org exports through XeLaTeX with a package list extended by =mathtools=,
@@ -795,45 +968,91 @@ convert XeLaTeX output to a transparent PNG at half scale.
   (org-latex-preview '(16)))
 #+end_src
 
+#+RESULTS:
+: my/org-latex-preview-all
+
 ** Smart RET and Checkboxes
 
 =my/org-ret-dwim= makes RET context-sensitive: it toggles checkboxes, follows
 links, folds headings, or moves to the next line.  Checkboxes cycle through
 unchecked, checked, and partial states.  The same block binds these commands
-in Evil normal and insert states.
+in Meow normal state; insert state keeps Org's own =org-return=.
 
 #+begin_src emacs-lisp
-(defun my/org-toggle-checkbox-3way ()
-  "Cycle checkbox: [ ] -> [X] -> [-] -> [ ]."
-  (interactive)
-  (let ((state (org-element-property :checkbox (org-element-context))))
-    (pcase state
-      ('off   (org-toggle-checkbox))        ; [ ] -> [X]
-      ('on    (org-toggle-checkbox '(16)))  ; [X] -> [-]
-      ('trans                               ; [-] -> [ ]
-       (org-toggle-checkbox '(4))           ; remove
-       (org-toggle-checkbox '(4))))))       ; add again
-(defun my/org-ret-dwim ()
-  "Smart RET: follows links, toggles checkboxes, or folds headings."
-  (interactive)
-  (let* ((element (org-element-context))
-         (item    (org-element-lineage element '(item) t)))
-    (cond
-     ((eq major-mode 'sqlite-mode)
-      (call-interactively 'sqlite-mode-list-data))
-     ((and item (org-element-property :checkbox item))
-      (my/org-toggle-checkbox-3way))
-     ((eq 'link (org-element-type element))
-      (org-open-at-point-global))
-     ((org-at-heading-p) (org-cycle))
-     (t (evil-next-line)))))
+  (defun my/org-toggle-checkbox-3way ()
+    "Cycle checkbox: [ ] -> [X] -> [-] -> [ ]."
+    (interactive)
+    (let ((state (org-element-property :checkbox (org-element-context))))
+      (pcase state
+        ('off   (org-toggle-checkbox))        ; [ ] -> [X]
+        ('on    (org-toggle-checkbox '(16)))  ; [X] -> [-]
+        ('trans                               ; [-] -> [ ]
+         (org-toggle-checkbox '(4))           ; remove
+         (org-toggle-checkbox '(4))))))       ; add again
 
-(with-eval-after-load 'evil
-  (with-eval-after-load 'org
-    (evil-define-key 'normal org-mode-map (kbd "RET") 'my/org-ret-dwim)
-    (evil-define-key 'insert org-mode-map (kbd "RET") 'org-return)
-    (evil-define-key 'normal org-mode-map (kbd "t") #'org-todo)))
+  (defun my/org-ret-dwim ()
+    "Smart RET in normal state: links, tables, lists, headings."
+    (interactive)
+    (let* ((element (org-element-context))
+           (item    (org-element-lineage element '(item) t)))
+      (cond
+       ((eq major-mode 'sqlite-mode)
+        (call-interactively 'sqlite-mode-list-data))
+       ((eq 'link (org-element-type element))
+        (org-open-at-point-global))
+       ((org-at-table-p)
+        (org-table-next-row))              ; next row, adds one at the end
+       (item
+        (end-of-line)
+        (org-meta-return)                  ; new item: same "-", "+" or "1." type
+        (meow-insert))                     ; and start typing
+       ((org-at-heading-p) (org-cycle))
+       (t (call-interactively #'meow-next)))))
+
+(defun my/org-insert-ret ()
+  "RET in Org insert state: new item in lists, next row in tables."
+  (interactive)
+  (cond
+   ((org-at-table-p) (org-return))
+   ((org-at-item-p)
+    (if (save-excursion
+          (beginning-of-line)
+          (looking-at "[ \t]*\\(?:[-+*]\\|[0-9]+[.)]\\)[ \t]*\\(?:\\[[ X-]\\][ \t]*\\)?$"))
+        (delete-region (line-beginning-position) (line-end-position)) ; empty item ends the list
+      (org-meta-return)))
+   (t (org-return))))
+
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "RET") #'my/org-insert-ret))
+  (defvar meow-normal-mode)
+
+  (defun my/meow-normal-ret ()
+    "RET in Meow normal state.
+  In Org buffers run `my/org-ret-dwim'; elsewhere run whatever RET would do
+  if Meow's normal-state map were not active."
+    (interactive)
+    (if (derived-mode-p 'org-mode)
+        (my/org-ret-dwim)
+      (let ((cmd (let ((meow-normal-mode nil))
+                   (key-binding (kbd "RET") t))))
+        (when (commandp cmd)
+          (call-interactively cmd)))))
+
+  (defun my/meow-normal-t ()
+    "t in Meow normal state: `org-todo' in Org buffers, `meow-till' elsewhere."
+    (interactive)
+    (if (derived-mode-p 'org-mode)
+        (call-interactively #'org-todo)
+      (call-interactively #'meow-till)))
+
+  ;; Insert state keeps Org's own RET (`org-return').
+  (with-eval-after-load 'meow
+    (meow-normal-define-key
+     '("RET" . my/meow-normal-ret)
+     '("t"   . my/meow-normal-t)))
 #+end_src
+
+#+RESULTS:
 
 ** Presentations (org-present and org-tree-slide)
 
@@ -872,11 +1091,7 @@ restore the original state on exit.
               (org-present-hide-cursor)
               (setq-local face-remapping-alist '((default (:height 1.3) default)))
               (display-line-numbers-mode -1)
-              (when (featurep 'evil)
-                (evil-local-set-key 'normal (kbd "<left>")  'org-present-prev)
-                (evil-local-set-key 'normal (kbd "<right>") 'org-present-next)
-                (evil-local-set-key 'normal (kbd "<up>")    'org-present-prev)
-                (evil-local-set-key 'normal (kbd "<down>")  'org-present-next))))
+              ))
 
   (add-hook 'org-present-mode-quit-hook
             (lambda ()
@@ -897,16 +1112,14 @@ restore the original state on exit.
 
       (define-key org-tree-slide-mode-map (kbd "n") 'org-tree-slide-move-next-tree)
   (define-key org-tree-slide-mode-map (kbd "p") 'org-tree-slide-move-previous-tree)
+  (define-key org-tree-slide-mode-map (kbd "<left>") 'org-tree-slide-move-previous-tree)
+  (define-key org-tree-slide-mode-map (kbd "<right>") 'org-tree-slide-move-next-tree)
 
     (add-hook 'org-tree-slide-play-hook
             (lambda ()
                             (setq-local face-remapping-alist '((default (:height 1.5) default)))
               (display-line-numbers-mode -1)
-                                                        (when (featurep 'evil)
-                (evil-local-set-key 'normal (kbd "<left>")  'org-tree-slide-move-previous-tree)
-                (evil-local-set-key 'normal (kbd "<right>") 'org-tree-slide-move-next-tree)
-                (evil-local-set-key 'normal (kbd "<up>")    'previous-line)
-                (evil-local-set-key 'normal (kbd "<down>")  'next-line))))
+              ))
 
   (add-hook 'org-tree-slide-stop-hook
             (lambda ()
@@ -936,6 +1149,9 @@ restore the original state on exit.
   (define-key org-read-date-minibuffer-local-map (kbd "g")
     (lambda () (interactive) (org-eval-in-calendar '(calendar-goto-today)))))
 #+end_src
+
+#+RESULTS:
+: #[nil ((org-eval-in-calendar '(calendar-goto-today))) nil nil nil nil]
 
 ** Org Appearance (org-modern and org-tidy)
 
@@ -977,6 +1193,9 @@ values are in =custom.el=.
   ;; 'invisible - hide only
   (setq org-tidy-properties-style 'inline))
 #+end_src
+
+#+RESULTS:
+: [nil 27376 39580 779442 nil elpaca-process-queues nil nil 0 nil]
 
 ** Moving DONE Tasks (plans.org)
 
@@ -1043,6 +1262,9 @@ so that Org has finished updating the buffer.
 (add-hook 'org-after-todo-state-change-hook #'my/org-move-done-to-bottom)
 ;; ================= plans.org autosort ================
 #+end_src
+
+#+RESULTS:
+| my/org-move-done-to-bottom |
 
 * Org Roam
 
@@ -1115,15 +1337,12 @@ search.
   (org-roam-setup))
 
 
+;; The org-roam side buffer opens in Meow's motion state (see
+;; `meow-mode-state-list'), so its own section keys keep working.
 (with-eval-after-load 'org-roam
-  (with-eval-after-load 'evil
-    (evil-set-initial-state 'org-roam-buffer-mode 'normal)))
-(with-eval-after-load 'org-roam
-  (with-eval-after-load 'evil
-    (evil-define-key 'normal org-roam-preview-map
-      (kbd "0") #'evil-beginning-of-line
-      (kbd "^") #'evil-first-non-blank
-      (kbd "$") #'evil-end-of-line)))
+  (define-key org-roam-preview-map (kbd "0") #'beginning-of-line)
+  (define-key org-roam-preview-map (kbd "^") #'back-to-indentation)
+  (define-key org-roam-preview-map (kbd "$") #'end-of-line))
 
 ;; === org-download ==
 (use-package org-download
@@ -1194,6 +1413,9 @@ search.
         (not (org-at-heading-p))))
 #+end_src
 
+#+RESULTS:
+: #[nil ((not (org-at-heading-p))) nil nil "Индексировать только файлы, игнорируя все заголовки внутри них."]
+
 * Line Dragging (drag-stuff)
 
 =drag-stuff= moves the current line or selection in any direction without
@@ -1212,10 +1434,13 @@ cutting and pasting.  The =M-j/k/h/l= keys move text down, up, left, and right.
          ("M-l" . drag-stuff-right)))
 #+end_src
 
+#+RESULTS:
+: [nil 27376 39580 812470 nil elpaca-process-queues nil nil 0 nil]
+
 * Org Agenda
 
 The agenda starts on the current day, warns about deadlines one day ahead,
-and hides the =discipline= tag.  Evil-org adds modal navigation, and a custom
+and hides the =discipline= tag.  Agenda buffers use Meow's motion state, and a custom
 motion map adds single-key todo, clock, schedule, deadline, capture, quit, and
 redraw commands.  Custom agenda views provide a daily view, Emacs tasks from
 =plans.org=, event/task views, and an urgent view.
@@ -1242,35 +1467,27 @@ view does not filter that individual block; it is preserved unchanged.
       (my/org-roam-refresh-agenda-list)))
   (advice-add 'org-agenda :before #'my/refresh-agenda-files-before-agenda))
 
-;; ====== Evil-org ======
-(use-package evil-org
-  :ensure t
-  :after org
-  :hook (org-mode . evil-org-mode)
-  :config
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+;; ====== Meow motion-state bindings ======
+(defun my/setup-agenda-meow-keys ()
+  "Agenda keys for Meow motion state.
+`j' and `k' are bound here and also routed through `my/meow-motion-next' and
+`my/meow-motion-prev', which call the agenda item commands in agenda buffers."
+  (define-key org-agenda-mode-map (kbd "h")   #'backward-char)
+  (define-key org-agenda-mode-map (kbd "l")   #'forward-char)
+  (define-key org-agenda-mode-map (kbd "j")   #'org-agenda-next-item)
+  (define-key org-agenda-mode-map (kbd "k")   #'org-agenda-previous-item)
+  (define-key org-agenda-mode-map (kbd "t")   #'org-agenda-todo)
+  (define-key org-agenda-mode-map (kbd "I")   #'org-agenda-clock-in)
+  (define-key org-agenda-mode-map (kbd "O")   #'org-agenda-clock-out)
+  (define-key org-agenda-mode-map (kbd "s")   #'org-agenda-schedule)
+  (define-key org-agenda-mode-map (kbd "d")   #'org-agenda-deadline)
+  (define-key org-agenda-mode-map (kbd "c")   #'org-capture)
+  (define-key org-agenda-mode-map (kbd "q")   #'org-agenda-quit)
+  (define-key org-agenda-mode-map (kbd "r")   #'org-agenda-redo)
+  (define-key org-agenda-mode-map (kbd "RET") #'org-agenda-switch-to)
+  (define-key org-agenda-mode-map (kbd "/")   #'org-agenda-filter-by-tag))
 
-;; ====== Evil-биндинги ======
-(defun my/setup-agenda-evil-keys ()
-  (evil-define-key 'motion org-agenda-mode-map
-    (kbd "h")   'evil-backward-char
-    (kbd "l")   'evil-forward-char
-    (kbd "j")   'org-agenda-next-item
-    (kbd "k")   'org-agenda-previous-item
-    (kbd "t")   'org-agenda-todo
-    (kbd "I")   'org-agenda-clock-in
-    (kbd "O")   'org-agenda-clock-out
-    (kbd "s")   'org-agenda-schedule
-    (kbd "d")   'org-agenda-deadline
-    (kbd "c")   'org-capture
-    (kbd "q")   'org-agenda-quit
-    (kbd "r")   'org-agenda-redo
-    (kbd "RET") 'org-agenda-switch-to
-    (kbd "/") 'org-agenda-filter-by-tag
-    ))
-
-(add-hook 'org-agenda-mode-hook #'my/setup-agenda-evil-keys)
+(add-hook 'org-agenda-mode-hook #'my/setup-agenda-meow-keys)
 
 ;; ====== Кастомные команды ======
 (setq org-agenda-custom-commands
@@ -1368,10 +1585,13 @@ view does not filter that individual block; it is preserved unchanged.
     (org-capture)))
 #+end_src
 
+#+RESULTS:
+: my/agenda-capture-smart
+
 * Calendar Grid (calfw)
 
 =calfw= and =calfw-org= provide a week/month calendar grid over Org data.
-Evil keys navigate days and weeks, =g= jumps to a date, RET opens the agenda
+Meow motion-state keys navigate days and weeks, =g= jumps to a date, RET opens the agenda
 day, TAB shows details, and =x= refreshes the calendar.
 
 #+begin_src emacs-lisp
@@ -1381,16 +1601,18 @@ day, TAB shows details, and =x= refreshes the calendar.
   (require 'calfw-org))
 
 (with-eval-after-load 'calfw
-  (evil-define-key '(normal motion) calfw-calendar-mode-map
-    "j" 'calfw-navi-next-week-command
-    "k" 'calfw-navi-previous-week-command
-    "h" 'calfw-navi-previous-day-command
-    "l" 'calfw-navi-next-day-command
-    "g" 'calfw-org-goto-date
-    "x" 'calfw-refresh-calendar-buffer
-    "q" 'bury-buffer
-    (kbd "RET") 'calfw-org-open-agenda-day
-    (kbd "TAB") 'calfw-show-details-command))
+  ;; calfw buffers use Meow motion state; j/k are routed through
+  ;; `my/meow-motion-next' / `my/meow-motion-prev' (see the Meow section), and
+  ;; the keys below are plain mode-map bindings.
+  (define-key calfw-calendar-mode-map (kbd "j") #'calfw-navi-next-week-command)
+  (define-key calfw-calendar-mode-map (kbd "k") #'calfw-navi-previous-week-command)
+  (define-key calfw-calendar-mode-map (kbd "h") #'calfw-navi-previous-day-command)
+  (define-key calfw-calendar-mode-map (kbd "l") #'calfw-navi-next-day-command)
+  (define-key calfw-calendar-mode-map (kbd "g") #'calfw-org-goto-date)
+  (define-key calfw-calendar-mode-map (kbd "x") #'calfw-refresh-calendar-buffer)
+  (define-key calfw-calendar-mode-map (kbd "q") #'bury-buffer)
+  (define-key calfw-calendar-mode-map (kbd "RET") #'calfw-org-open-agenda-day)
+  (define-key calfw-calendar-mode-map (kbd "TAB") #'calfw-show-details-command))
 
 (autoload 'calfw-open-org-calendar "calfw-org" "Open Org Calendar" t)
 
@@ -1398,11 +1620,14 @@ day, TAB shows details, and =x= refreshes the calendar.
   :ensure t)
 #+end_src
 
+#+RESULTS:
+: [nil 27376 39580 815135 nil elpaca-process-queues nil nil 0 nil]
+
 * Telegram (telega)
 
 =telega= is installed directly from GitHub and uses Homebrew's TDLib, so the
 library prefix and =PKG_CONFIG_PATH= are set for macOS.  Telegram buffers use
-Emacs state instead of Evil, images are enabled, and the mode-line indicator
+Meow's motion and insert states instead of normal state, images are enabled, and the mode-line indicator
 and notifications are turned on.
 
 #+begin_src emacs-lisp
@@ -1416,9 +1641,9 @@ and notifications are turned on.
   :defer t
   :commands (telega)
   :config
-    (with-eval-after-load 'evil
-    (evil-set-initial-state 'telega-root-mode 'emacs)
-    (evil-set-initial-state 'telega-chat-mode 'emacs))
+    (with-eval-after-load 'meow
+    (add-to-list 'meow-mode-state-list '(telega-root-mode . motion))
+    (add-to-list 'meow-mode-state-list '(telega-chat-mode . insert)))
 
     (setq telega-use-images t)
 
@@ -1426,6 +1651,9 @@ and notifications are turned on.
 
     (setq telega-notifications-mode t))
 #+end_src
+
+#+RESULTS:
+: [nil 27376 39580 816184 nil elpaca-process-queues nil nil 0 nil]
 
 * Russian Keyboard Layout (reverse-im)
 
@@ -1436,12 +1664,48 @@ while the system layout is Russian.
 #+begin_src emacs-lisp
 (use-package reverse-im
   :ensure t
-  :after evil
+  :after meow
   :custom
       (reverse-im-input-methods '("russian-computer"))
   :config
     (reverse-im-mode t))
+;; reverse-im only translates key bindings.  Prompts that read a raw character
+;; (Meow's "thing" prompt, org-agenda and capture menus) still see Cyrillic.
+;; Translate those reads, but only inside the commands listed below, so that
+;; `f' / `t' can still search for Cyrillic characters.
+(defconst my/ru-en-table
+  (let ((h (make-hash-table)))
+    (cl-loop for r across "йцукенгшщзхъфывапролджэячсмитьбюё"
+             for e across "qwertyuiop[]asdfghjkl;'zxcvbnm,.`"
+             do (puthash r e h))
+    (cl-loop for r across "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁ"
+             for e across "QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>~"
+             do (puthash r e h))
+    h)
+  "Russian (ЙЦУКЕН) to QWERTY character map.")
+
+(defvar my/ru-translate-reads nil
+  "When non-nil, raw character reads are translated from Russian to QWERTY.")
+
+(defun my/ru-translate-read-a (result)
+  (if (and my/ru-translate-reads (integerp result))
+      (gethash result my/ru-en-table result)
+    result))
+
+(dolist (fn '(read-char read-char-exclusive read-event read-key))
+  (advice-add fn :filter-return #'my/ru-translate-read-a))
+
+(defun my/ru-translating-a (orig &rest args)
+  (let ((my/ru-translate-reads t))
+    (apply orig args)))
+
+(dolist (cmd '(meow-inner-of-thing meow-bounds-of-thing
+               meow-beginning-of-thing meow-end-of-thing
+               org-agenda org-capture org-mks))
+  (advice-add cmd :around #'my/ru-translating-a))
 #+end_src
+
+#+RESULTS:
 
 * Assembler (FASM)
 
@@ -1455,6 +1719,9 @@ while the system layout is Russian.
 
 (add-to-list 'auto-mode-alist '("\\.asm\\'" . fasm-mode))
 #+end_src
+
+#+RESULTS:
+: ((\.[pP][dD][fF]\' . pdf-view-mode) (^yang\.settings$ . jsonc-mode) (\.pdf\' . pdf-view-mode) (/git-rebase-todo\' . git-rebase-mode) (\.typ\' . typst-mode) (\.\(?:md\|markdown\|mkd\|mdown\|mkdn\|mdwn\)\' . markdown-mode) (\.asm\' . fasm-mode) (\.gpg\(~\|\.~[0-9]+~\)?\' nil epa-file) (\.elc\' . elisp-byte-code-mode) (\.zst\' nil jka-compr) (\.dz\' nil jka-compr) (\.xz\' nil jka-compr) (\.lzma\' nil jka-compr) (\.lz\' nil jka-compr) (\.g?z\' nil jka-compr) (\.bz2\' nil jka-compr) (\.Z\' nil jka-compr) (\.vr[hi]?\' . vera-mode) (\(?:\.\(?:rbw?\|ru\|rake\|thor\|axlsx\|jbuilder\|rabl\|gemspec\|podspec\)\|/\(?:Gem\|Rake\|Cap\|Thor\|Puppet\|Berks\|Brew\|Fast\|Vagrant\|Guard\|Pod\)file\)\' . ruby-mode) (\.re?st\' . rst-mode) (/\(?:Pipfile\|\.?flake8\)\' . conf-mode) (\.py[iw]?\' . python-mode) (\.m\' . octave-maybe-mode) (\.less\' . less-css-mode) (\.editorconfig\' . editorconfig-conf-mode) (\.scss\' . scss-mode) (\.cs\' . csharp-mode) (\.awk\' . awk-mode) (\.\(u?lpc\|pike\|pmod\(\.in\)?\)\' . pike-mode) (\.idl\' . idl-mode) (\.java\' . java-mode) (\.m\' . objc-mode) (\.ii\' . c++-mode) (\.i\' . c-mode) (\.lex\' . c-mode) (\.y\(acc\)?\' . c-mode) (\.h\' . c-or-c++-mode) (\.c\' . c-mode) (\.\(CC?\|HH?\)\' . c++-mode) (\.[ch]\(pp\|xx\|\+\+\)\' . c++-mode) (\.\(cc\|hh\)\' . c++-mode) (\.\(bat\|cmd\)\' . bat-mode) (\.[sx]?html?\(\.[a-zA-Z_]+\)?\' . mhtml-mode) (\.svgz?\' . image-mode) (\.svgz?\' . xml-mode) (\.x[bp]m\' . image-mode) (\.x[bp]m\' . c-mode) (\.p[bpgn]m\' . image-mode) (\.tiff?\' . image-mode) (\.gif\' . image-mode) (\.png\' . image-mode) (\.jpe?g\' . image-mode) (\.webp\' . image-mode) (\.te?xt\' . text-mode) (\.[tT]e[xX]\' . tex-mode) (\.ins\' . tex-mode) (\.ltx\' . latex-mode) (\.dtx\' . doctex-mode) (\.org\' . org-mode) (\.dir-locals\(?:-2\)?\.el\' . lisp-data-mode) (\.eld\' . lisp-data-mode) (eww-bookmarks\' . lisp-data-mode) (tramp\' . lisp-data-mode) (/archive-contents\' . lisp-data-mode) (places\' . lisp-data-mode) (\.emacs-places\' . lisp-data-mode) (\.el\' . emacs-lisp-mode) (Project\.ede\' . emacs-lisp-mode) (\(?:\.\(?:scm\|sls\|sld\|stk\|ss\|sch\)\|/\.guile\)\' . scheme-mode) (\.l\' . lisp-mode) (\.li?sp\' . lisp-mode) (\.[fF]\' . fortran-mode) (\.for\' . fortran-mode) (\.p\' . pascal-mode) (\.pas\' . pascal-mode) (\.\(dpr\|DPR\)\' . delphi-mode) (\.\([pP]\([Llm]\|erl\|od\)\|al\)\' . perl-mode) (Imakefile\' . makefile-imake-mode) (Makeppfile\(?:\.mk\)?\' . makefile-makepp-mode) (\.makepp\' . makefile-makepp-mode) (\.mk\' . makefile-bsdmake-mode) (\.make\' . makefile-bsdmake-mode) (GNUmakefile\' . makefile-gmake-mode) ([Mm]akefile\' . makefile-bsdmake-mode) (\.am\' . makefile-automake-mode) (\.texinfo\' . texinfo-mode) (\.te?xi\' . texinfo-mode) (\.[sS]\' . asm-mode) (\.asm\' . asm-mode) (\.css\' . css-mode) (\.mixal\' . mixal-mode) (\.gcov\' . compilation-mode) (/\.[a-z0-9-]*gdbinit . gdb-script-mode) (-gdb\.gdb . gdb-script-mode) ([cC]hange\.?[lL]og?\' . change-log-mode) ([cC]hange[lL]og[-.][0-9]+\' . change-log-mode) (\$CHANGE_LOG\$\.TXT . change-log-mode) (\.scm\.[0-9]*\' . scheme-mode) (\.[ckz]?sh\'\|\.shar\'\|/\.z?profile\' . sh-mode) (\.bash\' . sh-mode) (/PKGBUILD\' . sh-mode) (\(/\|\`\)\.\(bash_\(profile\|history\|log\(in\|out\)\)\|z?log\(in\|out\)\)\' . sh-mode) (\(/\|\`\)\.\(shrc\|zshrc\|m?kshrc\|bashrc\|t?cshrc\|esrc\)\' . sh-mode) (\(/\|\`\)\.\([kz]shenv\|xinitrc\|startxrc\|xsession\)\' . sh-mode) (\.m?spec\' . sh-mode) (\.m[mes]\' . nroff-mode) (\.man\' . nroff-mode) (\.sty\' . latex-mode) (\.cl[so]\' . latex-mode) (\.bbl\' . latex-mode) (\.bib\' . bibtex-mode) (\.bst\' . bibtex-style-mode) (\.sql\' . sql-mode) (\(acinclude\|aclocal\|acsite\)\.m4\' . autoconf-mode) (\.m[4c]\' . m4-mode) (\.mf\' . metafont-mode) (\.mp\' . metapost-mode) (\.vhdl?\' . vhdl-mode) (\.article\' . text-mode) (\.letter\' . text-mode) (\.i?tcl\' . tcl-mode) (\.exp\' . tcl-mode) (\.itk\' . tcl-mode) (\.icn\' . icon-mode) (\.sim\' . simula-mode) (\.mss\' . scribe-mode) (\.f9[05]\' . f90-mode) (\.f0[38]\' . f90-mode) (\.indent\.pro\' . fundamental-mode) (\.\(pro\|PRO\)\' . idlwave-mode) (\.srt\' . srecode-template-mode) (\.prolog\' . prolog-mode) (\.tar\' . tar-mode) (\.\(arc\|zip\|lzh\|lha\|zoo\|[jew]ar\|xpi\|rar\|cbr\|7z\|squashfs\|ARC\|ZIP\|LZH\|LHA\|ZOO\|[JEW]AR\|XPI\|RAR\|CBR\|7Z\|SQUASHFS\)\' . archive-mode) (\.oxt\' . archive-mode) (\.\(deb\|[oi]pk\)\' . archive-mode) (\`/tmp/Re . text-mode) (/Message[0-9]*\' . text-mode) (\`/tmp/fol/ . text-mode) (\.oak\' . scheme-mode) (\.sgml?\' . sgml-mode) (\.x[ms]l\' . xml-mode) (\.dbk\' . xml-mode) (\.dtd\' . sgml-mode) (\.ds\(ss\)?l\' . dsssl-mode) (\.js[mx]?\' . javascript-mode) (\.har\' . javascript-mode) (\.json\' . js-json-mode) (\.[ds]?va?h?\' . verilog-mode) (\.by\' . bovine-grammar-mode) (\.wy\' . wisent-grammar-mode) (\.erts\' . erts-mode) ([:/\]\..*\(emacs\|gnus\|viper\)\' . emacs-lisp-mode) (\`\..*emacs\' . emacs-lisp-mode) ([:/]_emacs\' . emacs-lisp-mode) (/crontab\.X*[0-9]+\' . shell-script-mode) (\.ml\' . lisp-mode) (\.ld[si]?\' . ld-script-mode) (ld\.?script\' . ld-script-mode) (\.xs\' . c-mode) (\.x[abdsru]?[cnw]?\' . ld-script-mode) (\.zone\' . dns-mode) (\.soa\' . dns-mode) (\.asd\' . lisp-mode) (\.\(asn\|mib\|smi\)\' . snmp-mode) (\.\(as\|mi\|sm\)2\' . snmpv2-mode) (\.\(diffs?\|patch\|rej\)\' . diff-mode) (\.\(dif\|pat\)\' . diff-mode) (\.[eE]?[pP][sS]\' . ps-mode) (\.\(?:PDF\|EPUB\|CBZ\|FB2\|O?XPS\|DVI\|OD[FGPST]\|DOCX\|XLSX?\|PPTX?\|pdf\|epub\|cbz\|fb2\|o?xps\|djvu\|dvi\|od[fgpst]\|docx\|xlsx?\|pptx?\)\' . doc-view-mode-maybe) (configure\.\(ac\|in\)\' . autoconf-mode) (\.s\(v\|iv\|ieve\)\' . sieve-mode) (BROWSE\' . ebrowse-tree-mode) (\.ebrowse\' . ebrowse-tree-mode) (#\*mail\* . mail-mode) (\.g\' . antlr-mode) (\.mod\' . m2-mode) (\.ses\' . ses-mode) (\.docbook\' . sgml-mode) (\.com\' . dcl-mode) (/config\.\(?:bat\|log\)\' . fundamental-mode) (/\.?\(authinfo\|netrc\)\' . authinfo-mode) (\.\(?:[iI][nN][iI]\|[lL][sS][tT]\|[rR][eE][gG]\|[sS][yY][sS]\)\' . conf-mode) (\.la\' . conf-unix-mode) (\.ppd\' . conf-ppd-mode) (java.+\.conf\' . conf-javaprop-mode) (\.properties\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-javaprop-mode) (\.toml\' . conf-toml-mode) (\.desktop\' . conf-desktop-mode) (/\.redshift\.conf\' . conf-windows-mode) (\`/etc/\(?:DIR_COLORS\|ethers\|.?fstab\|.*hosts\|lesskey\|login\.?de\(?:fs\|vperm\)\|magic\|mtab\|pam\.d/.*\|permissions\(?:\.d/.+\)?\|protocols\|rpc\|services\)\' . conf-space-mode) (\`/etc/\(?:acpid?/.+\|aliases\(?:\.d/.+\)?\|default/.+\|group-?\|hosts\..+\|inittab\|ksysguarddrc\|opera6rc\|passwd-?\|shadow-?\|sysconfig/.+\)\' . conf-mode) ([cC]hange[lL]og[-.][-0-9a-z]+\' . change-log-mode) (/\.?\(?:gitconfig\|gnokiirc\|hgrc\|kde.*rc\|mime\.types\|wgetrc\)\' . conf-mode) (/\.mailmap\' . conf-unix-mode) (/\.\(?:asound\|enigma\|fetchmail\|gltron\|gtk\|hxplayer\|mairix\|mbsync\|msmtp\|net\|neverball\|nvidia-settings-\|offlineimap\|qt/.+\|realplayer\|reportbug\|rtorrent\.\|screen\|scummvm\|sversion\|sylpheed/.+\|xmp\)rc\' . conf-mode) (/\.\(?:gdbtkinit\|grip\|mpdconf\|notmuch-config\|orbital/.+txt\|rhosts\|tuxracer/options\)\' . conf-mode) (/\.?X\(?:default\|resource\|re\)s\> . conf-xdefaults-mode) (/X11.+app-defaults/\|\.ad\' . conf-xdefaults-mode) (/X11.+locale/.+/Compose\' . conf-colon-mode) (/X11.+locale/compose\.dir\' . conf-javaprop-mode) (\.~?[0-9]+\.[0-9][-.0-9]*~?\' nil t) (\.\(?:orig\|in\|[bB][aA][kK]\)\' nil t) ([/.]c\(?:on\)?f\(?:i?g\)?\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-mode-maybe) (\.[1-9]\' . nroff-mode) (\.art\' . image-mode) (\.avs\' . image-mode) (\.bmp\' . image-mode) (\.cmyk\' . image-mode) (\.cmyka\' . image-mode) (\.crw\' . image-mode) (\.dcr\' . image-mode) (\.dcx\' . image-mode) (\.dng\' . image-mode) (\.dpx\' . image-mode) (\.fax\' . image-mode) (\.heic\' . image-mode) (\.hrz\' . image-mode) (\.icb\' . image-mode) (\.icc\' . image-mode) (\.icm\' . image-mode) (\.ico\' . image-mode) (\.icon\' . image-mode) (\.jbg\' . image-mode) (\.jbig\' . image-mode) (\.jng\' . image-mode) (\.jnx\' . image-mode) (\.miff\' . image-mode) (\.mng\' . image-mode) (\.mvg\' . image-mode) (\.otb\' . image-mode) (\.p7\' . image-mode) (\.pcx\' . image-mode) (\.pdb\' . image-mode) (\.pfa\' . image-mode) (\.pfb\' . image-mode) (\.picon\' . image-mode) (\.pict\' . image-mode) (\.rgb\' . image-mode) (\.rgba\' . image-mode) (\.tga\' . image-mode) (\.wbmp\' . image-mode) (\.webp\' . image-mode) (\.wmf\' . image-mode) (\.wpg\' . image-mode) (\.xcf\' . image-mode) (\.xmp\' . image-mode) (\.xwd\' . image-mode) (\.yuv\' . image-mode) (\.tgz\' . tar-mode) (\.tbz2?\' . tar-mode) (\.txz\' . tar-mode) (\.tzst\' . tar-mode))
 
 * LaTeX Export (minted)
 
@@ -1480,21 +1747,23 @@ section.
         ("linenos")))
 #+end_src
 
+#+RESULTS:
+| style   | gruvbox-dark |
+| bgcolor | bg           |
+| frame   | lines        |
+| linenos |              |
+
 * Dashboard
 
 The dashboard replaces the scratch buffer on startup with a centered banner
 and the next five agenda items.  Shortcuts, footer, startup info, and logo
-title are hidden for a minimal screen.  Dashboard is also removed from
-=evil-collection= earlier, and =initial-buffer-choice= opens it on startup.
+title are hidden for a minimal screen.  =initial-buffer-choice= opens it on
+startup.
 
 #+begin_src emacs-lisp
 (use-package dashboard
   :ensure t
   :config
-  (when (fboundp 'evil-collection-remove)
-    (evil-collection-remove 'dashboard))
-  (advice-remove 'dashboard-insert-startupify-lists
-                 'evil-collection-dashboard-setup-jump-commands)
 
   (setq dashboard-startup-banner "~/.config/emacs/my_images/Amalthea_dreams.gif")
  (setq dashboard-center-content t)
@@ -1518,13 +1787,18 @@ title are hidden for a minimal screen.  Dashboard is also removed from
           (get-buffer-create "*scratch*"))))
 #+end_src
 
+#+RESULTS:
+: #[nil ((if (fboundp 'dashboard-open) (progn (dashboard-open) (get-buffer "*dashboard*")) (get-buffer-create "*scratch*"))) nil]
+
 * Typst
 
 Typst support combines =typst-mode=, the =tinymist= language server, and a
 live PDF preview.  Live preview compiles once synchronously, starts =typst
 watch=, opens the PDF beside the source, and refreshes it with a debounce when
 the watch process reports a rebuild.  Compile, preview, stop, and refresh are
-also bound under the =SPC m= leader prefix and =C-c C-= keys.
+also bound under the =SPC m= leader prefix and =C-c C-= keys.  Meow's
+leader map is global, so =SPC m s= stops the preview in Typst buffers and
+runs =magit-status= everywhere else.
 
 #+begin_src emacs-lisp
 (use-package typst-mode
@@ -1711,33 +1985,43 @@ also bound under the =SPC m= leader prefix and =C-c C-= keys.
     (message "Ошибка компиляции — смотри *typst-compile*")))
 
 (defun my/typst--bind-keys ()
-  "Evil/C-c bindings for typst buffers."
-  (when (featurep 'evil)
-    (evil-define-key 'normal typst-mode-map
-      (kbd "C-c C-c") #'my/typst-compile
-      (kbd "C-c C-p") #'my/typst-live-preview
-      (kbd "C-c C-s") #'my/typst-stop-preview
-      (kbd "C-c C-r") #'my/typst--refresh-pdf)))
+  "C-c bindings for typst buffers.
+Meow's normal state does not bind control-key chords, so these work in every
+Meow state."
+  (when (boundp 'typst-mode-map)
+    (define-key typst-mode-map (kbd "C-c C-c") #'my/typst-compile)
+    (define-key typst-mode-map (kbd "C-c C-p") #'my/typst-live-preview)
+    (define-key typst-mode-map (kbd "C-c C-s") #'my/typst-stop-preview)
+    (define-key typst-mode-map (kbd "C-c C-r") #'my/typst--refresh-pdf)))
 
-(with-eval-after-load 'general
-  (with-eval-after-load 'typst-mode
-    (my-leader-def :keymaps 'typst-mode-map
-      "m c" #'my/typst-compile
-      "m p" #'my/typst-live-preview
-      "m s" #'my/typst-stop-preview
-      "m r" #'my/typst--refresh-pdf)))
+(defun my/typst-stop-or-magit-status ()
+  "SPC m s: stop the Typst preview in Typst buffers, `magit-status' elsewhere."
+  (interactive)
+  (if (string-prefix-p "typst" (symbol-name major-mode))
+      (call-interactively #'my/typst-stop-preview)
+    (call-interactively #'magit-status)))
+
+;; Meow's leader map is global, so the Typst bindings live there too.
+(with-eval-after-load 'meow
+  (meow-leader-define-key
+   '("m c" . my/typst-compile)
+   '("m p" . my/typst-live-preview)
+   '("m s" . my/typst-stop-or-magit-status)
+   '("m r" . my/typst--refresh-pdf)))
 #+end_src
+
+#+RESULTS:
 
 * Dired & File Management
 
 Dired is replaced by =dirvish=, which adds icons, Git state, file sizes and
-times, a header with the path and free space, and quick sorting.  Evil keys
+times, a header with the path and free space, and quick sorting.  Meow motion-state keys
 navigate the tree and manage files, while =dired-ranger= provides copy, move,
 and paste.  Deletion confirmations are disabled, recursive operations run
 silently, and deleted files go to the Trash.
 
 #+begin_src emacs-lisp
-;;; setup-dired.el --- Dired + Dirvish + Evil -*- lexical-binding: t; -*-
+;;; setup-dired.el --- Dired + Dirvish + Meow -*- lexical-binding: t; -*-
 
 (use-package dired-ranger
   :ensure t
@@ -1770,35 +2054,33 @@ silently, and deleted files go to the Trash.
   (when (executable-find "fd")
     (require 'dirvish-fd nil t))
 
-  ;; ---- evil-биндинги для dirvish ----
-  (with-eval-after-load 'evil
-    (evil-make-overriding-map dirvish-mode-map 'normal)
-    (evil-define-key 'normal dirvish-mode-map
-      "n"  'evil-ex-search-next
-      "N"  'evil-ex-search-previous
-      "G"  'end-of-buffer
-      "gg" 'evil-goto-first-line)))
+  ;; ---- Meow motion-state bindings for dirvish ----
+  (let ((g-map (make-sparse-keymap)))
+    (define-key g-map (kbd "g") #'beginning-of-buffer)
+    (define-key g-map (kbd "r") #'revert-buffer)
+    (define-key dirvish-mode-map (kbd "g") g-map))
+  (define-key dirvish-mode-map (kbd "n") #'isearch-repeat-forward)
+  (define-key dirvish-mode-map (kbd "N") #'isearch-repeat-backward)
+  (define-key dirvish-mode-map (kbd "G") #'end-of-buffer))
 
-;; ---- биндинги для классического dired ----
-(defun my/dired-evil-bindings ()
-  "Мои кастомные биндинги для dired в evil-mode."
-  (with-eval-after-load 'evil
-    (evil-define-key 'normal dired-mode-map
-      "h" 'dired-up-directory
-      "l" 'dired-find-file
-      "a" 'dired-create-empty-file
-      "A" 'dired-create-directory
-      "c" 'dired-ranger-copy
-      "M" 'dired-ranger-move
-      "p" 'dired-ranger-paste
-      "d" 'dired-do-delete
-      "i" 'wdired-change-to-wdired-mode
-      "m" 'dired-mark
-      "w" 'dirvish-copy-file-path)
-    (evil-define-key 'visual dired-mode-map
-      "m" 'dired-mark)))
+;; ---- bindings for classic dired (Meow motion state) ----
+;; Dired buffers start in motion state, where keys that Meow does not bind
+;; fall through to the mode map, so plain `define-key' is enough here.
+(defun my/dired-meow-bindings ()
+  "My custom Dired bindings for Meow motion state."
+  (define-key dired-mode-map (kbd "h") #'dired-up-directory)
+  (define-key dired-mode-map (kbd "l") #'dired-find-file)
+  (define-key dired-mode-map (kbd "a") #'dired-create-empty-file)
+  (define-key dired-mode-map (kbd "A") #'dired-create-directory)
+  (define-key dired-mode-map (kbd "c") #'dired-ranger-copy)
+  (define-key dired-mode-map (kbd "M") #'dired-ranger-move)
+  (define-key dired-mode-map (kbd "p") #'dired-ranger-paste)
+  (define-key dired-mode-map (kbd "d") #'dired-do-delete)
+  (define-key dired-mode-map (kbd "i") #'wdired-change-to-wdired-mode)
+  (define-key dired-mode-map (kbd "m") #'dired-mark)
+  (define-key dired-mode-map (kbd "w") #'dirvish-copy-file-path))
 
-(add-hook 'dired-mode-hook #'my/dired-evil-bindings)
+(add-hook 'dired-mode-hook #'my/dired-meow-bindings)
 
 ;; ---- dired настройки ----
 (setq dired-listing-switches
@@ -1806,7 +2088,6 @@ silently, and deleted files go to the Trash.
 
 (setq dirvish-header-line-format '(:left (path) :right (free-space)))
 (setq dirvish-hide-cursor t)
-(add-hook 'dired-mode-hook (lambda () (setq-local evil-normal-state-cursor nil)))
 
 (setq dirvish-use-header-line 'global)
 (setq dirvish-mode-line-bar-image-width 0)
@@ -1835,6 +2116,9 @@ silently, and deleted files go to the Trash.
 (blink-cursor-mode -1)
 (setq delete-by-moving-to-trash t)
 #+end_src
+
+#+RESULTS:
+: t
 
 * Version Control (Magit)
 
@@ -1884,6 +2168,9 @@ Uses `split-window-below' directly so it is not affected by the
   :config
   (setq magit-display-buffer-function #'my/magit-display-buffer))
 #+end_src
+
+#+RESULTS:
+: [nil 27376 39580 828455 nil elpaca-process-queues nil nil 0 nil]
 
 * Custom Utilities & Global Modes
 
@@ -1952,6 +2239,9 @@ Does not kill the org-roam side buffer (`*org-roam*')."
     (message "Killed %d Magit buffer(s)" count)))
 #+end_src
 
+#+RESULTS:
+: my/kill-all-magit-buffers
+
 * Typing Trainer (Monkeytype)
 
 =monkeytype= is a typing-practice package.  Word lists are read from
@@ -1965,40 +2255,6 @@ Does not kill the org-roam side buffer (`*org-roam*')."
 (setq monkeytype-randomize t)
 #+end_src
 
-* Disabled: org-to-cal
+#+RESULTS:
+: t
 
-This package lives in =elisp/org-to-cal/= and is intentionally disabled.  It
-exported Org items tagged =:ical:= to macOS Calendar through either an HTTP
-subscription server or a direct EventKit importer.  Everything else in this
-configuration, including Org Agenda and calfw, continues to work without it.
-
-** Why it is disabled
-
-The original reason was not recorded in the configuration.  TODO: user to fill
-in.
-
-** How to re-enable
-
-Uncomment the source block below and restart Emacs.  The old =load-path= entry
-was required because the package is not installed from ELPA.
-
-#+begin_src emacs-lisp
-;; DISABLED: org-to-cal — uncomment to activate.
-;; (add-to-list 'load-path (expand-file-name "elisp/org-to-cal" user-emacs-directory))
-;; (require 'org-to-cal)
-;; (customize-set-variable 'org-to-cal-sync-method 'direct-import)
-;; (customize-set-variable 'org-to-cal-tag "ical")
-;; (customize-set-variable 'org-to-cal-target-calendar "Org")
-;; (org-to-cal-mode 1)
-#+end_src
-
-** Installed LaunchAgents
-
-Disabling the Emacs package does not uninstall LaunchAgents that were
-previously installed.  If the direct-import or server method was installed,
-unload it once with =launchctl= or re-enable the package temporarily and run
-=M-x org-to-cal-uninstall=.
-
-#+begin_src emacs-lisp :comments no
-;;; config.el ends here
-#+end_src
