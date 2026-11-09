@@ -41,3 +41,4 @@ transient/
 lisp.bak/
 org-roam.db
 .org-id-locations
+eshell/history
