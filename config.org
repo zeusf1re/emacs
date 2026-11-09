@@ -1,8 +1,7 @@
 #+TITLE: Emacs Configuration
 #+STARTUP: overview
-#+PROPERTY: header-args:emacs-lisp :tangle config.el :comments link
+#+PROPERTY: header-args: emacs-lisp :tangle config.el :comments link
 #+OPTIONS: toc:2
-
 This file is the single source of truth for the Emacs configuration.  On
 startup, =init.el= tangles it to =config.el= with Org Babel and loads the
 result.  =early-init.el= stays a plain Emacs Lisp file because it runs before
@@ -31,8 +30,6 @@ trees and Git status clean.  Lock files are disabled completely.
 ;;; config.el --- Tangled from config.org -*- lexical-binding: t; -*-
 #+end_src
 
-#+RESULTS:
-
 #+begin_src emacs-lisp
 (setq backup-directory-alist
       `(("." . ,(expand-file-name "tmp/backups/" user-emacs-directory))))
@@ -43,8 +40,6 @@ trees and Git status clean.  Lock files are disabled completely.
 
 (setq create-lockfiles nil)
 #+end_src
-
-#+RESULTS:
 
 * Package Management (Elpaca)
 
@@ -98,9 +93,6 @@ The =compat= package is pinned to GNU-devel because newer packages expect it.
   :ensure (:source "gnu-devel" :package "compat"))
 #+end_src
 
-#+RESULTS:
-: [nil 27378 10923 859734 nil elpaca-process-queues nil nil 0 nil]
-
 * Core Editing Defaults
 
 These settings define the editor before any package hooks run: four-space
@@ -108,7 +100,7 @@ indentation with spaces instead of tabs, relative line numbers, a column
 indicator, and an Org-mode scratch buffer with no startup message.  Long lines
 are truncated instead of wrapped, and the bell is disabled.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp 
 (setq-default
  tab-width 4
  indent-tabs-mode nil
@@ -123,9 +115,6 @@ are truncated instead of wrapped, and the bell is disabled.
 (setq ring-bell-function 'ignore)
 #+end_src
 
-#+RESULTS:
-: ignore
-
 * Custom File
 
 =custom.el= is written by Emacs' Custom interface at runtime and is not
@@ -135,12 +124,9 @@ Custom-generated variables and faces.  Keeping it separate prevents Emacs from
 rewriting =config.org= behind your back.
 
 #+begin_src emacs-lisp
-(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
-(load custom-file :no-error-if-file-is-missing)
+  (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+  (load custom-file :no-error-if-file-is-missing)
 #+end_src
-
-#+RESULTS:
-: t
 
 * Meow & Keybindings
 
@@ -435,9 +421,6 @@ made with the normal-state commands instead.
 
         (global-set-key [escape] 'keyboard-escape-quit)
 #+end_src
-  
-#+RESULTS:
-: keyboard-escape-quit
 
 * UI & Theme
 
@@ -599,9 +582,6 @@ display action (side window at the bottom)."
   (setq colorful-highlight-in-comments nil))
 #+end_src
 
-#+RESULTS:
-: [nil 27378 10923 877354 nil elpaca-process-queues nil nil 0 nil]
-
 * Completion & Minibuffer
 
 Vertico renders the minibuffer as a vertical list, and =vertico-directory=
@@ -692,9 +672,6 @@ switching, and ripgrep, while Cape adds extra completion backends.
 (use-package cape
   :ensure t)
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 882387 nil elpaca-process-queues nil nil 0 nil]
 
 * Language Server Protocol (LSP)
 
@@ -791,8 +768,6 @@ inline diagnostics, clang-format on save, and Cape completion integration.
   (advice-add 'lsp-completion-at-point :around #'cape-wrap-buster))
 #+end_src
 
-#+RESULTS:
-
 * Help & Discoverability
 
 =which-key= shows available continuations after a prefix is pressed.  A short
@@ -804,9 +779,6 @@ delay keeps it unobtrusive while making the leader bindings discoverable.
   :config
   (setq which-key-idle-delay 0.3))
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 884909 nil elpaca-process-queues nil nil 0 nil]
 
 * Projects (Projectile)
 
@@ -821,9 +793,6 @@ file.
   (setq projectile-project-search-path '("~/prog/")
         projectile-switch-project-action #'projectile-dired))
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 885981 nil elpaca-process-queues nil nil 0 nil]
 
 * Terminal (vterm)
 
@@ -845,9 +814,6 @@ triggering the leader map.
   (define-key vterm-mode-map (kbd "SPC") #'vterm--self-insert))
 #+end_src
 
-#+RESULTS:
-: [nil 27378 10923 887088 nil elpaca-process-queues nil nil 0 nil]
-
 #+begin_src emacs-lisp
 (use-package meow-vterm
   :ensure (:host github :repo "accelbread/meow-vterm")
@@ -857,9 +823,6 @@ triggering the leader map.
   (setq vterm-keymap-exceptions '("C-c"))
   (meow-vterm-enable))
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 890077 nil elpaca-process-queues nil nil 0 nil]
 
 * PDF & Documents
 
@@ -880,8 +843,6 @@ without a build prompt, and line numbers are hidden while reading.
   :hook (pdf-view-mode . pdf-view-restore-mode))
 (setq pdf-view-continuous nil)
 #+end_src
-
-#+RESULTS:
 
 * Org Mode
 
@@ -975,9 +936,6 @@ and Org, and evaluation confirmation is off.
 (setq org-babel-python-command "python3")
 #+end_src
 
-#+RESULTS:
-: python3
-
 ** LaTeX Export and Formula Preview
 
 Org exports through XeLaTeX with a package list extended by =mathtools=,
@@ -992,9 +950,6 @@ convert XeLaTeX output to a transparent PNG at half scale.
   (interactive)
   (org-latex-preview '(16)))
 #+end_src
-
-#+RESULTS:
-: my/org-latex-preview-all
 
 ** Smart RET and Checkboxes
 
@@ -1117,8 +1072,6 @@ Outside Org: run whatever TAB would do without Meow's normal map."
      '("T"   . my/meow-normal-t)))
 #+end_src
 
-#+RESULTS:
-
 ** Presentations (org-present and org-tree-slide)
 
 Two presentation packages coexist: =org-present= shows headings as slides with
@@ -1215,15 +1168,13 @@ restore the original state on exit.
     (lambda () (interactive) (org-eval-in-calendar '(calendar-goto-today)))))
 #+end_src
 
-#+RESULTS:
-: #[nil ((org-eval-in-calendar '(calendar-goto-today))) nil nil nil nil]
-
 ** Org Appearance (org-modern and org-tidy)
 
 =org-modern= replaces headline stars and checkboxes with Unicode markers and
 styles tables and agenda labels.  =org-tidy= hides property drawers in a
 compact inline style.  Face customization is not repeated here; the final
 values are in =custom.el=.
+=my/org-remove-results-before-save= deletes all =#+RESULT:= from ONLY this file in save-hook.
 
 #+begin_src emacs-lisp
 ;; ======= org-mode stilisation =======
@@ -1257,10 +1208,16 @@ values are in =custom.el=.
   ;; 'inline    - hide and append a ♯ marker to the heading
   ;; 'invisible - hide only
   (setq org-tidy-properties-style 'inline))
-#+end_src
 
-#+RESULTS:
-: [nil 27378 10923 897503 nil elpaca-process-queues nil nil 0 nil]
+(defun my/org-remove-results-before-save ()
+  "Remove all #+RESULTS blocks before saving config.org."
+  (when (and (eq major-mode 'org-mode)
+             buffer-file-name
+             (string= (expand-file-name buffer-file-name)
+                      (expand-file-name "config.org" user-emacs-directory)))
+    (org-babel-remove-result-one-or-many 0)))
+(add-hook 'before-save-hook #'my/org-remove-results-before-save)
+#+end_src
 
 ** Moving DONE Tasks (plans.org)
 
@@ -1327,9 +1284,6 @@ so that Org has finished updating the buffer.
 (add-hook 'org-after-todo-state-change-hook #'my/org-move-done-to-bottom)
 ;; ================= plans.org autosort ================
 #+end_src
-
-#+RESULTS:
-| my/org-move-done-to-bottom |
 
 * Org Roam
 
@@ -1478,9 +1432,6 @@ search.
         (not (org-at-heading-p))))
 #+end_src
 
-#+RESULTS:
-: #[nil ((not (org-at-heading-p))) nil nil "Индексировать только файлы, игнорируя все заголовки внутри них."]
-
 * Line Dragging (drag-stuff)
 
 =drag-stuff= moves the current line or selection in any direction without
@@ -1498,9 +1449,6 @@ cutting and pasting.  The =M-j/k/h/l= keys move text down, up, left, and right.
          ("M-h" . drag-stuff-left)
          ("M-l" . drag-stuff-right)))
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 904166 nil elpaca-process-queues nil nil 0 nil]
 
 * Org Agenda
 
@@ -1650,9 +1598,6 @@ view does not filter that individual block; it is preserved unchanged.
     (org-capture)))
 #+end_src
 
-#+RESULTS:
-: my/agenda-capture-smart
-
 * Calendar Grid (calfw)
 
 =calfw= and =calfw-org= provide a week/month calendar grid over Org data.
@@ -1685,9 +1630,6 @@ day, TAB shows details, and =x= refreshes the calendar.
   :ensure t)
 #+end_src
 
-#+RESULTS:
-: [nil 27378 10923 907265 nil elpaca-process-queues nil nil 0 nil]
-
 * Telegram (telega)
 
 =telega= is installed directly from GitHub and uses Homebrew's TDLib, so the
@@ -1716,9 +1658,6 @@ and notifications are turned on.
 
     (setq telega-notifications-mode t))
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 908382 nil elpaca-process-queues nil nil 0 nil]
 
 * Russian Keyboard Layout (reverse-im)
 
@@ -1770,8 +1709,6 @@ while the system layout is Russian.
   (advice-add cmd :around #'my/ru-translating-a))
 #+end_src
 
-#+RESULTS:
-
 * Assembler (FASM)
 
 =fasm-mode= provides syntax support for FASM assembly and is associated with
@@ -1784,9 +1721,6 @@ while the system layout is Russian.
 
 (add-to-list 'auto-mode-alist '("\\.asm\\'" . fasm-mode))
 #+end_src
-
-#+RESULTS:
-: ((^yang\.settings$ . jsonc-mode) (\.pdf\' . pdf-view-mode) (/git-rebase-todo\' . git-rebase-mode) (\.typ\' . typst-mode) (\.\(?:md\|markdown\|mkd\|mdown\|mkdn\|mdwn\)\' . markdown-mode) (\.asm\' . fasm-mode) (\.gpg\(~\|\.~[0-9]+~\)?\' nil epa-file) (\.elc\' . elisp-byte-code-mode) (\.zst\' nil jka-compr) (\.dz\' nil jka-compr) (\.xz\' nil jka-compr) (\.lzma\' nil jka-compr) (\.lz\' nil jka-compr) (\.g?z\' nil jka-compr) (\.bz2\' nil jka-compr) (\.Z\' nil jka-compr) (\.vr[hi]?\' . vera-mode) (\(?:\.\(?:rbw?\|ru\|rake\|thor\|axlsx\|jbuilder\|rabl\|gemspec\|podspec\)\|/\(?:Gem\|Rake\|Cap\|Thor\|Puppet\|Berks\|Brew\|Fast\|Vagrant\|Guard\|Pod\)file\)\' . ruby-mode) (\.re?st\' . rst-mode) (/\(?:Pipfile\|\.?flake8\)\' . conf-mode) (\.py[iw]?\' . python-mode) (\.m\' . octave-maybe-mode) (\.less\' . less-css-mode) (\.editorconfig\' . editorconfig-conf-mode) (\.scss\' . scss-mode) (\.cs\' . csharp-mode) (\.awk\' . awk-mode) (\.\(u?lpc\|pike\|pmod\(\.in\)?\)\' . pike-mode) (\.idl\' . idl-mode) (\.java\' . java-mode) (\.m\' . objc-mode) (\.ii\' . c++-mode) (\.i\' . c-mode) (\.lex\' . c-mode) (\.y\(acc\)?\' . c-mode) (\.h\' . c-or-c++-mode) (\.c\' . c-mode) (\.\(CC?\|HH?\)\' . c++-mode) (\.[ch]\(pp\|xx\|\+\+\)\' . c++-mode) (\.\(cc\|hh\)\' . c++-mode) (\.\(bat\|cmd\)\' . bat-mode) (\.[sx]?html?\(\.[a-zA-Z_]+\)?\' . mhtml-mode) (\.svgz?\' . image-mode) (\.svgz?\' . xml-mode) (\.x[bp]m\' . image-mode) (\.x[bp]m\' . c-mode) (\.p[bpgn]m\' . image-mode) (\.tiff?\' . image-mode) (\.gif\' . image-mode) (\.png\' . image-mode) (\.jpe?g\' . image-mode) (\.webp\' . image-mode) (\.te?xt\' . text-mode) (\.[tT]e[xX]\' . tex-mode) (\.ins\' . tex-mode) (\.ltx\' . latex-mode) (\.dtx\' . doctex-mode) (\.org\' . org-mode) (\.dir-locals\(?:-2\)?\.el\' . lisp-data-mode) (\.eld\' . lisp-data-mode) (eww-bookmarks\' . lisp-data-mode) (tramp\' . lisp-data-mode) (/archive-contents\' . lisp-data-mode) (places\' . lisp-data-mode) (\.emacs-places\' . lisp-data-mode) (\.el\' . emacs-lisp-mode) (Project\.ede\' . emacs-lisp-mode) (\(?:\.\(?:scm\|sls\|sld\|stk\|ss\|sch\)\|/\.guile\)\' . scheme-mode) (\.l\' . lisp-mode) (\.li?sp\' . lisp-mode) (\.[fF]\' . fortran-mode) (\.for\' . fortran-mode) (\.p\' . pascal-mode) (\.pas\' . pascal-mode) (\.\(dpr\|DPR\)\' . delphi-mode) (\.\([pP]\([Llm]\|erl\|od\)\|al\)\' . perl-mode) (Imakefile\' . makefile-imake-mode) (Makeppfile\(?:\.mk\)?\' . makefile-makepp-mode) (\.makepp\' . makefile-makepp-mode) (\.mk\' . makefile-bsdmake-mode) (\.make\' . makefile-bsdmake-mode) (GNUmakefile\' . makefile-gmake-mode) ([Mm]akefile\' . makefile-bsdmake-mode) (\.am\' . makefile-automake-mode) (\.texinfo\' . texinfo-mode) (\.te?xi\' . texinfo-mode) (\.[sS]\' . asm-mode) (\.asm\' . asm-mode) (\.css\' . css-mode) (\.mixal\' . mixal-mode) (\.gcov\' . compilation-mode) (/\.[a-z0-9-]*gdbinit . gdb-script-mode) (-gdb\.gdb . gdb-script-mode) ([cC]hange\.?[lL]og?\' . change-log-mode) ([cC]hange[lL]og[-.][0-9]+\' . change-log-mode) (\$CHANGE_LOG\$\.TXT . change-log-mode) (\.scm\.[0-9]*\' . scheme-mode) (\.[ckz]?sh\'\|\.shar\'\|/\.z?profile\' . sh-mode) (\.bash\' . sh-mode) (/PKGBUILD\' . sh-mode) (\(/\|\`\)\.\(bash_\(profile\|history\|log\(in\|out\)\)\|z?log\(in\|out\)\)\' . sh-mode) (\(/\|\`\)\.\(shrc\|zshrc\|m?kshrc\|bashrc\|t?cshrc\|esrc\)\' . sh-mode) (\(/\|\`\)\.\([kz]shenv\|xinitrc\|startxrc\|xsession\)\' . sh-mode) (\.m?spec\' . sh-mode) (\.m[mes]\' . nroff-mode) (\.man\' . nroff-mode) (\.sty\' . latex-mode) (\.cl[so]\' . latex-mode) (\.bbl\' . latex-mode) (\.bib\' . bibtex-mode) (\.bst\' . bibtex-style-mode) (\.sql\' . sql-mode) (\(acinclude\|aclocal\|acsite\)\.m4\' . autoconf-mode) (\.m[4c]\' . m4-mode) (\.mf\' . metafont-mode) (\.mp\' . metapost-mode) (\.vhdl?\' . vhdl-mode) (\.article\' . text-mode) (\.letter\' . text-mode) (\.i?tcl\' . tcl-mode) (\.exp\' . tcl-mode) (\.itk\' . tcl-mode) (\.icn\' . icon-mode) (\.sim\' . simula-mode) (\.mss\' . scribe-mode) (\.f9[05]\' . f90-mode) (\.f0[38]\' . f90-mode) (\.indent\.pro\' . fundamental-mode) (\.\(pro\|PRO\)\' . idlwave-mode) (\.srt\' . srecode-template-mode) (\.prolog\' . prolog-mode) (\.tar\' . tar-mode) (\.\(arc\|zip\|lzh\|lha\|zoo\|[jew]ar\|xpi\|rar\|cbr\|7z\|squashfs\|ARC\|ZIP\|LZH\|LHA\|ZOO\|[JEW]AR\|XPI\|RAR\|CBR\|7Z\|SQUASHFS\)\' . archive-mode) (\.oxt\' . archive-mode) (\.\(deb\|[oi]pk\)\' . archive-mode) (\`/tmp/Re . text-mode) (/Message[0-9]*\' . text-mode) (\`/tmp/fol/ . text-mode) (\.oak\' . scheme-mode) (\.sgml?\' . sgml-mode) (\.x[ms]l\' . xml-mode) (\.dbk\' . xml-mode) (\.dtd\' . sgml-mode) (\.ds\(ss\)?l\' . dsssl-mode) (\.js[mx]?\' . javascript-mode) (\.har\' . javascript-mode) (\.json\' . js-json-mode) (\.[ds]?va?h?\' . verilog-mode) (\.by\' . bovine-grammar-mode) (\.wy\' . wisent-grammar-mode) (\.erts\' . erts-mode) ([:/\]\..*\(emacs\|gnus\|viper\)\' . emacs-lisp-mode) (\`\..*emacs\' . emacs-lisp-mode) ([:/]_emacs\' . emacs-lisp-mode) (/crontab\.X*[0-9]+\' . shell-script-mode) (\.ml\' . lisp-mode) (\.ld[si]?\' . ld-script-mode) (ld\.?script\' . ld-script-mode) (\.xs\' . c-mode) (\.x[abdsru]?[cnw]?\' . ld-script-mode) (\.zone\' . dns-mode) (\.soa\' . dns-mode) (\.asd\' . lisp-mode) (\.\(asn\|mib\|smi\)\' . snmp-mode) (\.\(as\|mi\|sm\)2\' . snmpv2-mode) (\.\(diffs?\|patch\|rej\)\' . diff-mode) (\.\(dif\|pat\)\' . diff-mode) (\.[eE]?[pP][sS]\' . ps-mode) (\.\(?:PDF\|EPUB\|CBZ\|FB2\|O?XPS\|DVI\|OD[FGPST]\|DOCX\|XLSX?\|PPTX?\|pdf\|epub\|cbz\|fb2\|o?xps\|djvu\|dvi\|od[fgpst]\|docx\|xlsx?\|pptx?\)\' . doc-view-mode-maybe) (configure\.\(ac\|in\)\' . autoconf-mode) (\.s\(v\|iv\|ieve\)\' . sieve-mode) (BROWSE\' . ebrowse-tree-mode) (\.ebrowse\' . ebrowse-tree-mode) (#\*mail\* . mail-mode) (\.g\' . antlr-mode) (\.mod\' . m2-mode) (\.ses\' . ses-mode) (\.docbook\' . sgml-mode) (\.com\' . dcl-mode) (/config\.\(?:bat\|log\)\' . fundamental-mode) (/\.?\(authinfo\|netrc\)\' . authinfo-mode) (\.\(?:[iI][nN][iI]\|[lL][sS][tT]\|[rR][eE][gG]\|[sS][yY][sS]\)\' . conf-mode) (\.la\' . conf-unix-mode) (\.ppd\' . conf-ppd-mode) (java.+\.conf\' . conf-javaprop-mode) (\.properties\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-javaprop-mode) (\.toml\' . conf-toml-mode) (\.desktop\' . conf-desktop-mode) (/\.redshift\.conf\' . conf-windows-mode) (\`/etc/\(?:DIR_COLORS\|ethers\|.?fstab\|.*hosts\|lesskey\|login\.?de\(?:fs\|vperm\)\|magic\|mtab\|pam\.d/.*\|permissions\(?:\.d/.+\)?\|protocols\|rpc\|services\)\' . conf-space-mode) (\`/etc/\(?:acpid?/.+\|aliases\(?:\.d/.+\)?\|default/.+\|group-?\|hosts\..+\|inittab\|ksysguarddrc\|opera6rc\|passwd-?\|shadow-?\|sysconfig/.+\)\' . conf-mode) ([cC]hange[lL]og[-.][-0-9a-z]+\' . change-log-mode) (/\.?\(?:gitconfig\|gnokiirc\|hgrc\|kde.*rc\|mime\.types\|wgetrc\)\' . conf-mode) (/\.mailmap\' . conf-unix-mode) (/\.\(?:asound\|enigma\|fetchmail\|gltron\|gtk\|hxplayer\|mairix\|mbsync\|msmtp\|net\|neverball\|nvidia-settings-\|offlineimap\|qt/.+\|realplayer\|reportbug\|rtorrent\.\|screen\|scummvm\|sversion\|sylpheed/.+\|xmp\)rc\' . conf-mode) (/\.\(?:gdbtkinit\|grip\|mpdconf\|notmuch-config\|orbital/.+txt\|rhosts\|tuxracer/options\)\' . conf-mode) (/\.?X\(?:default\|resource\|re\)s\> . conf-xdefaults-mode) (/X11.+app-defaults/\|\.ad\' . conf-xdefaults-mode) (/X11.+locale/.+/Compose\' . conf-colon-mode) (/X11.+locale/compose\.dir\' . conf-javaprop-mode) (\.~?[0-9]+\.[0-9][-.0-9]*~?\' nil t) (\.\(?:orig\|in\|[bB][aA][kK]\)\' nil t) ([/.]c\(?:on\)?f\(?:i?g\)?\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-mode-maybe) (\.[1-9]\' . nroff-mode) (\.art\' . image-mode) (\.avs\' . image-mode) (\.bmp\' . image-mode) (\.cmyk\' . image-mode) (\.cmyka\' . image-mode) (\.crw\' . image-mode) (\.dcr\' . image-mode) (\.dcx\' . image-mode) (\.dng\' . image-mode) (\.dpx\' . image-mode) (\.fax\' . image-mode) (\.heic\' . image-mode) (\.hrz\' . image-mode) (\.icb\' . image-mode) (\.icc\' . image-mode) (\.icm\' . image-mode) (\.ico\' . image-mode) (\.icon\' . image-mode) (\.jbg\' . image-mode) (\.jbig\' . image-mode) (\.jng\' . image-mode) (\.jnx\' . image-mode) (\.miff\' . image-mode) (\.mng\' . image-mode) (\.mvg\' . image-mode) (\.otb\' . image-mode) (\.p7\' . image-mode) (\.pcx\' . image-mode) (\.pdb\' . image-mode) (\.pfa\' . image-mode) (\.pfb\' . image-mode) (\.picon\' . image-mode) (\.pict\' . image-mode) (\.rgb\' . image-mode) (\.rgba\' . image-mode) (\.tga\' . image-mode) (\.wbmp\' . image-mode) (\.webp\' . image-mode) (\.wmf\' . image-mode) (\.wpg\' . image-mode) (\.xcf\' . image-mode) (\.xmp\' . image-mode) (\.xwd\' . image-mode) (\.yuv\' . image-mode) (\.tgz\' . tar-mode) (\.tbz2?\' . tar-mode) (\.txz\' . tar-mode) (\.tzst\' . tar-mode))
 
 * LaTeX Export (minted)
 
@@ -1811,12 +1745,6 @@ section.
         ("frame" "lines")
         ("linenos")))
 #+end_src
-
-#+RESULTS:
-| style   | gruvbox-dark |
-| bgcolor | bg           |
-| frame   | lines        |
-| linenos |              |
 
 * Dashboard
 
@@ -1851,9 +1779,6 @@ startup.
             (progn (dashboard-open) (get-buffer "*dashboard*"))
           (get-buffer-create "*scratch*"))))
 #+end_src
-
-#+RESULTS:
-: #[nil ((if (fboundp 'dashboard-open) (progn (dashboard-open) (get-buffer "*dashboard*")) (get-buffer-create "*scratch*"))) nil]
 
 * Typst
 
@@ -2075,8 +2000,6 @@ Meow state."
    '("m r" . my/typst--refresh-pdf)))
 #+end_src
 
-#+RESULTS:
-
 * Dired & File Management
 
 Dired is replaced by =dirvish=, which adds icons, Git state, file sizes and
@@ -2182,9 +2105,6 @@ silently, and deleted files go to the Trash.
 (setq delete-by-moving-to-trash t)
 #+end_src
 
-#+RESULTS:
-: t
-
 * Version Control (Magit)
 
 Magit is bound to =C-x g= for status and =C-x M-g= for dispatch.  A custom
@@ -2233,9 +2153,6 @@ Uses `split-window-below' directly so it is not affected by the
   :config
   (setq magit-display-buffer-function #'my/magit-display-buffer))
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 969899 nil elpaca-process-queues nil nil 0 nil]
 
 * Custom Utilities & Global Modes
 
@@ -2304,9 +2221,6 @@ Does not kill the org-roam side buffer (`*org-roam*')."
     (message "Killed %d Magit buffer(s)" count)))
 #+end_src
 
-#+RESULTS:
-: my/kill-all-magit-buffers
-
 * Typing Trainer (Monkeytype)
 
 =monkeytype= is a typing-practice package.  Word lists are read from
@@ -2320,9 +2234,6 @@ Does not kill the org-roam side buffer (`*org-roam*')."
 (setq monkeytype-randomize t)
 #+end_src
 
-#+RESULTS:
-: t
-
 
 * Opencode
 #+begin_src emacs-lisp
@@ -2332,6 +2243,3 @@ Does not kill the org-roam side buffer (`*org-roam*')."
     (setq agent-shell-preferred-agent-config
         (agent-shell-opencode-make-agent-config)))
 #+end_src
-
-#+RESULTS:
-: [nil 27378 10923 974668 nil elpaca-process-queues nil nil 0 nil]
