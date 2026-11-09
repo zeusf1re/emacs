@@ -2047,7 +2047,10 @@ silently, and deleted files go to the Trash.
       (define-key wdired-mode-map (kbd "<escape>") #'wdired-finish-edit)
       (define-key dired-mode-map (kbd "m") #'dired-mark)
       (define-key dired-mode-map (kbd "w") #'dirvish-copy-file-path)
-      (define-key dired-mode-map (kbd "o") #'dired-sort-toggle-or-edit))
+      (define-key dired-mode-map (kbd "o") #'dired-sort-toggle-or-edit)
+      (define-key dired-mode-map (kbd "/") #'consult-line)
+
+)
 
     (add-hook 'dired-mode-hook #'my/dired-meow-bindings)
 
