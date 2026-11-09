@@ -154,272 +154,272 @@ Meow has no visual state, so there is nothing to map for it; selections are
 made with the normal-state commands instead.
 
 #+begin_src emacs-lisp
-          (defvar my/meow-motion-line-commands
-            '((org-agenda-mode     org-agenda-next-item
-                                   org-agenda-previous-item)
-              (calfw-calendar-mode calfw-navi-next-week-command
-                                   calfw-navi-previous-week-command)
-              (pdf-view-mode       pdf-view-next-line-or-next-page
-                                   pdf-view-previous-line-or-previous-page))
-            "Per-mode commands for j/k in Meow motion state.
-          Each entry is (MODE NEXT-COMMAND PREVIOUS-COMMAND).  Buffers whose major mode
-          is not listed fall back to `meow-next' and `meow-prev'.")
+  (defvar my/meow-motion-line-commands
+      '((org-agenda-mode     org-agenda-next-item
+                             org-agenda-previous-item)
+        (calfw-calendar-mode calfw-navi-next-week-command
+                             calfw-navi-previous-week-command)
+        (pdf-view-mode       pdf-view-next-line-or-next-page
+                             pdf-view-previous-line-or-previous-page))
+      "Per-mode commands for j/k in Meow motion state.
+    Each entry is (MODE NEXT-COMMAND PREVIOUS-COMMAND).  Buffers whose major mode
+    is not listed fall back to `meow-next' and `meow-prev'.")
 
-          (defun my/meow--motion-line-command (index fallback)
-            "Return the command at INDEX of the entry for the current mode, or FALLBACK."
-            (let ((entry (seq-find (lambda (e) (derived-mode-p (car e)))
-                                   my/meow-motion-line-commands)))
-              (if entry (nth index entry) fallback)))
+    (defun my/meow--motion-line-command (index fallback)
+      "Return the command at INDEX of the entry for the current mode, or FALLBACK."
+      (let ((entry (seq-find (lambda (e) (derived-mode-p (car e)))
+                             my/meow-motion-line-commands)))
+        (if entry (nth index entry) fallback)))
 
-          (defun my/meow-motion-next ()
-            "Move to the next line or item, using the mode's own command if it has one."
-            (interactive)
-            (call-interactively (my/meow--motion-line-command 1 #'meow-next)))
+    (defun my/meow-motion-next ()
+      "Move to the next line or item, using the mode's own command if it has one."
+      (interactive)
+      (call-interactively (my/meow--motion-line-command 1 #'meow-next)))
 
-          (defun my/meow-motion-prev ()
-            "Move to the previous line or item, using the mode's own command if it has one."
-            (interactive)
-            (call-interactively (my/meow--motion-line-command 2 #'meow-prev)))
+    (defun my/meow-motion-prev ()
+      "Move to the previous line or item, using the mode's own command if it has one."
+      (interactive)
+      (call-interactively (my/meow--motion-line-command 2 #'meow-prev)))
 
-          (defun my/meow-setup ()
-            "Configure Meow keys: QWERTY layout, motion, leader and normal state."
-            (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+    (defun my/meow-setup ()
+      "Configure Meow keys: QWERTY layout, motion, leader and normal state."
+      (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
 
-            ;; Inside the keypad Meow uses SPC as its "literal" prefix.  Move that role
-            ;; to backslash so `SPC SPC' can be bound to `meow-keypad' below.
-            (setq meow-keypad-literal-prefix ?\\)
+      ;; Inside the keypad Meow uses SPC as its "literal" prefix.  Move that role
+      ;; to backslash so `SPC SPC' can be bound to `meow-keypad' below.
+      (setq meow-keypad-literal-prefix ?\\)
 
-            (setq meow-keypad-start-keys nil)
-            ;;(define-key meow-leader-keymap (kbd "m") nil)
-            ;;(define-key meow-leader-keymap (kbd "g") nil)
-            (setq meow-keypad-ctrl-meta-prefix nil)
-            (setq meow-keypad-meta-prefix nil)
+      (setq meow-keypad-start-keys nil)
+      ;;(define-key meow-leader-keymap (kbd "m") nil)
+      ;;(define-key meow-leader-keymap (kbd "g") nil)
+      (setq meow-keypad-ctrl-meta-prefix nil)
+      (setq meow-keypad-meta-prefix nil)
 
-            ;; ---- Motion state (Dired, Agenda, PDF, Magit, ...) ----
-            (meow-motion-overwrite-define-key
-             '("j" . my/meow-motion-next)
-             '("k" . my/meow-motion-prev)
-             '("<escape>" . ignore))
-            ;; ---- Leader: SPC <keys> ----
-            (meow-leader-define-key
-             ;; SPC SPC opens the keypad (the C-x / M-x replacement)
-             '("SPC" . meow-keypad)
+      ;; ---- Motion state (Dired, Agenda, PDF, Magit, ...) ----
+      (meow-motion-overwrite-define-key
+       '("j" . my/meow-motion-next)
+       '("k" . my/meow-motion-prev)
+       '("<escape>" . ignore))
+      ;; ---- Leader: SPC <keys> ----
+      (meow-leader-define-key
+       ;; SPC SPC opens the keypad (the C-x / M-x replacement)
+       '("SPC" . meow-keypad)
 
-             ;; SPC <digit> = digit argument
-             '("1" . meow-digit-argument)
-             '("2" . meow-digit-argument)
-             '("3" . meow-digit-argument)
-             '("4" . meow-digit-argument)
-             '("5" . meow-digit-argument)
-             '("6" . meow-digit-argument)
-             '("7" . meow-digit-argument)
-             '("8" . meow-digit-argument)
-             '("9" . meow-digit-argument)
-             '("0" . meow-digit-argument)
-             '("?" . meow-cheatsheet)
+       ;; SPC <digit> = digit argument
+       '("1" . meow-digit-argument)
+       '("2" . meow-digit-argument)
+       '("3" . meow-digit-argument)
+       '("4" . meow-digit-argument)
+       '("5" . meow-digit-argument)
+       '("6" . meow-digit-argument)
+       '("7" . meow-digit-argument)
+       '("8" . meow-digit-argument)
+       '("9" . meow-digit-argument)
+       '("0" . meow-digit-argument)
+       '("?" . meow-cheatsheet)
 
-             '("." . find-file)
-             '("," . consult-buffer)
-             '(":" . execute-extended-command)
-             '(";" . meow-comment)
+       '("." . find-file)
+       '("," . consult-buffer)
+       '(":" . execute-extended-command)
+       '(";" . meow-comment)
 
-             '("b b" . switch-to-buffer)
-             '("b k" . kill-current-buffer)
-             '("b i" . ibuffer)
-             '("b B" . ibuffer)
+       '("b b" . switch-to-buffer)
+       '("b k" . kill-current-buffer)
+       '("b i" . ibuffer)
+       '("b B" . ibuffer)
 
-             '("w q" . delete-window)
-             '("w v" . split-window-right)
-             '("w s" . split-window-below)
-             '("w h" . windmove-left)
-             '("w j" . windmove-down)
-             '("w k" . windmove-up)
-             '("w l" . windmove-right)
-             '("w c" . delete-window)
-             '("w o" . delete)
+       '("w q" . delete-window)
+       '("w v" . split-window-right)
+       '("w s" . split-window-below)
+       '("w h" . windmove-left)
+       '("w j" . windmove-down)
+       '("w k" . windmove-up)
+       '("w l" . windmove-right)
+       '("w c" . delete-window)
+       '("w o" . delete)
 
-             '("w ." . enlarge-window-horizontally)
-             '("w ," . shrink-window-horizontally)
-             '("w +" . enlarge-window)
-             '("w -" . shrink-window)
+       '("w ." . enlarge-window-horizontally)
+       '("w ," . shrink-window-horizontally)
+       '("w +" . enlarge-window)
+       '("w -" . shrink-window)
 
-             '("q q" . save-buffers-kill-emacs)
-             '("s" . (lambda () (interactive) (save-some-buffers t)))
-             
-             
-             '("f g" . consult-find)
-             '("f s" . consult-ripgrep)
+       '("q q" . save-buffers-kill-emacs)
+       '("s" . (lambda () (interactive) (save-some-buffers t)))
+       
+       
+       '("f g" . consult-find)
+       '("f s" . consult-ripgrep)
 
-             '("p p" . projectile-switch-project)
-             '("p f" . projectile-find-file)
+       '("p p" . projectile-switch-project)
+       '("p f" . projectile-find-file)
 
-             '("t t" . vterm)
-             (cons "f p" (lambda () (interactive) (find-file "~/.config/emacs/config.org")))
+       '("t t" . vterm)
+       (cons "f p" (lambda () (interactive) (find-file "~/.config/emacs/config.org")))
 
-             '("c a" . lsp-execute-code-action)
-             '("c r" . lsp-rename)
-             '("c e" . lsp-ui-doc-show)
-             '("c g d" . lsp-find-references)
-             ;; Replacements for the old Vim-style g d, g r and K in lsp-mode buffers
-             '("c d" . lsp-find-definition)
-             '("c g r" . lsp-find-references)
-             '("c k" . lsp-ui-doc-show)
+       '("c a" . lsp-execute-code-action)
+       '("c r" . lsp-rename)
+       '("c e" . lsp-ui-doc-show)
+       '("c g d" . lsp-find-references)
+       ;; Replacements for the old Vim-style g d, g r and K in lsp-mode buffers
+       '("c d" . lsp-find-definition)
+       '("c g r" . lsp-find-references)
+       '("c k" . lsp-ui-doc-show)
 
-             '("c c" . compile)
+       '("c c" . compile)
 
-             '("/" . consult-line)
+       '("/" . consult-line)
 
-             '("a c" . calfw-org-open-calendar)
-             '("a a" . org-agenda)
-             '("a t" . org-timestamp)
-             '("a d" . org-deadline)
-             '("a s" . org-schedule)
-             '("a i" . org-clock-in)
-             '("a o" . org-clock-out)
-             '("a l" . org-clock-in-last)
-             '("a n" . org-add-note)
-             '("a q" . org-set-tags-command)
-             '("a k" . my/agenda-capture-smart)
-             '("a e" . org-set-effort)
+       '("a c" . calfw-org-open-calendar)
+       '("a a" . org-agenda)
+       '("a t" . org-timestamp)
+       '("a d" . org-deadline)
+       '("a s" . org-schedule)
+       '("a i" . org-clock-in)
+       '("a o" . org-clock-out)
+       '("a l" . org-clock-in-last)
+       '("a n" . org-add-note)
+       '("a q" . org-set-tags-command)
+       '("a k" . my/agenda-capture-smart)
+       '("a e" . org-set-effort)
 
-             '("h b" . describe-bindings)
-             '("h k" . describe-key)
-             '("h m" . describe-mode)
-             '("h v" . describe-variable)
-             '("h f" . describe-function)
-             '("h s" . describe-face)
+       '("h b" . describe-bindings)
+       '("h k" . describe-key)
+       '("h m" . describe-mode)
+       '("h v" . describe-variable)
+       '("h f" . describe-function)
+       '("h s" . describe-face)
 
-             '("o l" . org-latex-preview)
-             '("o L" . my/org-latex-preview-all)
-             '("o b b" . org-babel-execute-buffer)
-             '("o b s" . org-babel-execute-src-block)
-             '("o h" . consult-org-heading)
+       '("o l" . org-latex-preview)
+       '("o L" . my/org-latex-preview-all)
+       '("o b b" . org-babel-execute-buffer)
+       '("o b s" . org-babel-execute-src-block)
+       '("o h" . consult-org-heading)
 
-             '("d" . dashboard-open)
+       '("d" . dashboard-open)
 
-             '("m s" . magit-status)
-             '("g s" . magit-status)
-             '("m k" . my/kill-all-magit-buffers)
+       '("m s" . magit-status)
+       '("g s" . magit-status)
+       '("m k" . my/kill-all-magit-buffers)
 
-             '("r f f" . org-roam-node-find)
-             '("r f t" . my/org-roam-node-find-by-tag)
-             '("r i" . org-roam-node-insert)
-             '("r I" . org-roam-node-insert-immediate)
-             '("r c" . org-roam-capture)
-             '("r l" . org-roam-buffer-toggle)
-             '("r D" . org-roam-dailies-capture-today)
-             '("r d d" . org-roam-dailies-goto-today)
-             '("r d t" . org-roam-dailies-goto-tomorrow)
-             '("r d y" . org-roam-dailies-goto-yesterday)
-             '("r d D" . org-roam-dailies-capture-today)
-             '("r d T" . org-roam-dailies-capture-tomorrow)
-             '("r d Y" . org-roam-dailies-capture-yesterday)
-             '("r t" . org-roam-tag-add)
-             '("r G " . org-roam-graph)
-             '("r g " . org-roam-ui-open)
-             '("r u" . org-roam-ui-open)
-             '("r k" . my/kill-org-roam-buffers))
+       '("r f f" . org-roam-node-find)
+       '("r f t" . my/org-roam-node-find-by-tag)
+       '("r i" . org-roam-node-insert)
+       '("r I" . org-roam-node-insert-immediate)
+       '("r c" . org-roam-capture)
+       '("r l" . org-roam-buffer-toggle)
+       '("r D" . org-roam-dailies-capture-today)
+       '("r d d" . org-roam-dailies-goto-today)
+       '("r d t" . org-roam-dailies-goto-tomorrow)
+       '("r d y" . org-roam-dailies-goto-yesterday)
+       '("r d D" . org-roam-dailies-capture-today)
+       '("r d T" . org-roam-dailies-capture-tomorrow)
+       '("r d Y" . org-roam-dailies-capture-yesterday)
+       '("r t" . org-roam-tag-add)
+       '("r G " . org-roam-graph)
+       '("r g " . org-roam-ui-open)
+       '("r u" . org-roam-ui-open)
+       '("r k" . my/kill-org-roam-buffers))
 
-            ;; hook_for_binds
-            ;; hook-for-binds
+      ;; hook_for_binds
+      ;; hook-for-binds
 
-            ;; ---- Normal state (QWERTY layout) ----
-            (meow-normal-define-key
-             '("0" . meow-expand-0)
-             '("9" . meow-expand-9)
-             '("8" . meow-expand-8)
-             '("7" . meow-expand-7)
-             '("6" . meow-expand-6)
-             '("5" . meow-expand-5)
-             '("4" . meow-expand-4)
-             '("3" . meow-expand-3)
-             '("2" . meow-expand-2)
-             '("1" . meow-expand-1)
-             '("-" . negative-argument)
-             '(";" . meow-reverse)
-             '("," . meow-inner-of-thing)
-             '("." . meow-bounds-of-thing)
-             '("<" . meow-beginning-of-thing)
-             '(">" . meow-end-of-thing)
-             '("a" . meow-append)
-             '("A" . meow-open-below)
-             '("b" . meow-back-word)
-             '("B" . meow-back-symbol)
-             '("c" . meow-change)
-             '("d" . meow-delete)
-             '("D" . meow-backward-delete)
-             '("e" . meow-next-word)
-             '("E" . meow-next-symbol)
-             '("f" . meow-find)
-             '("g" . meow-cancel-selection)
-             '("G" . meow-grab)
-             '("h" . meow-left)
-             '("H" . meow-left-expand)
-             '("i" . meow-insert)
-             '("I" . meow-open-above)
-             '("j" . meow-next)
-             '("J" . meow-next-expand)
-             '("k" . meow-prev)
-             '("K" . meow-prev-expand)
-             '("l" . meow-right)
-             '("L" . meow-right-expand)
-             '("m" . meow-join)
-             '("n" . meow-search)
-             '("o" . meow-block)
-             '("O" . meow-to-block)
-             '("p" . meow-yank)
-             '("q" . meow-quit)
-             '("Q" . meow-goto-line)
-             '("r" . meow-replace)
-             '("R" . meow-swap-grab)
-             '("s" . meow-kill)
-             '("t" . meow-till)
-             '("u" . meow-undo)
-             '("U" . meow-undo-in-selection)
-             '("v" . meow-visit)
-             '("/" . meow-visit)
-             '("w" . meow-mark-word)
-             '("W" . meow-mark-symbol)
-             '("x" . meow-line)
-             '("X" . meow-goto-line)
-             '("y" . meow-save)
-             '("Y" . meow-sync-grab)
-             '("z" . meow-pop-selection)
-             '("'" . repeat)
-             ;; Commenting (replaces the old commentary operator)
-             '("#" . meow-comment)
-             '("<escape>" . meow-cancel-selection)))
+      ;; ---- Normal state (QWERTY layout) ----
+      (meow-normal-define-key
+       '("0" . meow-expand-0)
+       '("9" . meow-expand-9)
+       '("8" . meow-expand-8)
+       '("7" . meow-expand-7)
+       '("6" . meow-expand-6)
+       '("5" . meow-expand-5)
+       '("4" . meow-expand-4)
+       '("3" . meow-expand-3)
+       '("2" . meow-expand-2)
+       '("1" . meow-expand-1)
+       '("-" . negative-argument)
+       '(";" . meow-reverse)
+       '("," . meow-inner-of-thing)
+       '("." . meow-bounds-of-thing)
+       '("<" . meow-beginning-of-thing)
+       '(">" . meow-end-of-thing)
+       '("a" . meow-append)
+       '("A" . meow-open-below)
+       '("b" . meow-back-word)
+       '("B" . meow-back-symbol)
+       '("c" . meow-change)
+       '("d" . meow-delete)
+       '("D" . meow-backward-delete)
+       '("e" . meow-next-word)
+       '("E" . meow-next-symbol)
+       '("f" . meow-find)
+       '("g" . meow-cancel-selection)
+       '("G" . meow-grab)
+       '("h" . meow-left)
+       '("H" . meow-left-expand)
+       '("i" . meow-insert)
+       '("I" . meow-open-above)
+       '("j" . meow-next)
+       '("J" . meow-next-expand)
+       '("k" . meow-prev)
+       '("K" . meow-prev-expand)
+       '("l" . meow-right)
+       '("L" . meow-right-expand)
+       '("m" . meow-join)
+       '("n" . meow-search)
+       '("o" . meow-block)
+       '("O" . meow-to-block)
+       '("p" . meow-yank)
+       '("q" . meow-quit)
+       '("Q" . meow-goto-line)
+       '("r" . meow-replace)
+       '("R" . meow-swap-grab)
+       '("s" . meow-kill)
+       '("t" . meow-till)
+       '("u" . meow-undo)
+       '("U" . meow-undo-in-selection)
+       '("v" . meow-visit)
+       '("/" . meow-visit)
+       '("w" . meow-mark-word)
+       '("W" . meow-mark-symbol)
+       '("x" . meow-line)
+       '("X" . meow-goto-line)
+       '("y" . meow-save)
+       '("Y" . meow-sync-grab)
+       '("z" . meow-pop-selection)
+       '("'" . repeat)
+       ;; Commenting (replaces the old commentary operator)
+       '("#" . meow-comment)
+       '("<escape>" . meow-cancel-selection)))
 
-          (use-package meow
-            :ensure t
-            :demand t
-            :init
-            (setq meow-keypad-start-keys nil)
-            :config
-            (my/meow-setup)
+    (use-package meow
+      :ensure t
+      :demand t
+      :init
+      (setq meow-keypad-start-keys nil)
+      :config
+      (my/meow-setup)
 
-            ;; Modes that should start in a specific Meow state.  Special buffers use
-            ;; motion state so their own keys keep working; vterm types into the
-            ;; terminal in insert state.
-            (dolist (entry '((org-agenda-mode . motion)
-                             (dired-mode . motion)
-                             (dirvish-mode . motion)
-                             (calfw-calendar-mode . motion)
-                             (pdf-view-mode . motion)
-                             (org-roam-buffer-mode . motion)
-                             (vterm-mode . normal)
-                             (message-mode . normal)
-                             (messages-buffer-mode . normal)
-                             (help-mode . normal)
-                             (elpaca-log-mode . normal)
-                             ))
-              (add-to-list 'meow-mode-state-list entry))
+      ;; Modes that should start in a specific Meow state.  Special buffers use
+      ;; motion state so their own keys keep working; vterm types into the
+      ;; terminal in insert state.
+      (dolist (entry '((org-agenda-mode . motion)
+                       (dired-mode . motion)
+                       (dirvish-mode . motion)
+                       (calfw-calendar-mode . motion)
+                       (pdf-view-mode . motion)
+                       (org-roam-buffer-mode . motion)
+                       (vterm-mode . normal)
+                       (message-mode . normal)
+                       (messages-buffer-mode . normal)
+                       (help-mode . normal)
+                       (elpaca-log-mode . normal)
+                       ))
+        (add-to-list 'meow-mode-state-list entry))
 
-            (meow-global-mode 1))
+      (meow-global-mode 1))
 
-          (setq meow-use-clipboard t)
+    (setq meow-use-clipboard t)
 
-        (global-set-key [escape] 'keyboard-escape-quit)
+  (global-set-key [escape] 'keyboard-escape-quit)
 #+end_src
 
 * UI & Theme
@@ -544,7 +544,7 @@ display action (side window at the bottom)."
                (display-buffer-in-side-window)
                (side . bottom)
                (slot . 1)
-               (window-height . 0.40)
+               (window-height . 0.30)
                (dedicated . t)))
 (add-to-list 'display-buffer-alist
              '("\\`CAPTURE"
@@ -1177,46 +1177,46 @@ values are in =custom.el=.
 =my/org-remove-results-before-save= deletes all =#+RESULT:= from ONLY this file in save-hook.
 
 #+begin_src emacs-lisp
-;; ======= org-mode stilisation =======
-(use-package org-modern
-  :ensure t
-  :hook ((org-mode . org-modern-mode)
-         (org-agenda-finalize . org-modern-agenda))
-  :config
-  ;; --- Static star icons ---
-  (setq org-modern-star 'replace)
-(setq org-modern-replace-stars "○○◇◇✳◆□")
+  ;; ======= org-mode stilisation =======
+  (use-package org-modern
+    :ensure t
+    :hook ((org-mode . org-modern-mode)
+           (org-agenda-finalize . org-modern-agenda))
+    :config
+    ;; --- Static star icons ---
+    (setq org-modern-star 'replace)
+  (setq org-modern-replace-stars "○○◇◇✳◆□")
 
-  ;; --- Checkboxes ---
-(setq org-modern-checkbox '((88 . "☑") (45 . "☒" )
- (32 . "□")))
+    ;; --- Checkboxes ---
+  (setq org-modern-checkbox '((88 . "☑") (45 . "☒" )
+   (32 . "□")))
 
-  ;; --- Remove extra code-block decoration ---
-  (setq org-modern-table t)
-  (setq org-modern-block-fringe nil))
+    ;; --- Remove extra code-block decoration ---
+    (setq org-modern-table t)
+    (setq org-modern-block-fringe nil))
 
-;; Also handle the heading text of DONE entries
-(with-eval-after-load 'org
-  (setq org-fontify-done-headline nil))
+  ;; Also handle the heading text of DONE entries
+  (with-eval-after-load 'org
+    (setq org-fontify-done-headline nil))
 
-(use-package org-tidy
-  :ensure t
-  :hook (org-mode . org-tidy-mode)
-  :config
-  ;; Display style:
-  ;; 'fringe    - hide and show an indicator in the fringe
-  ;; 'inline    - hide and append a ♯ marker to the heading
-  ;; 'invisible - hide only
-  (setq org-tidy-properties-style 'inline))
+  (use-package org-tidy
+    :ensure t
+    :hook (org-mode . org-tidy-mode)
+    :config
+    ;; Display style:
+    ;; 'fringe    - hide and show an indicator in the fringe
+    ;; 'inline    - hide and append a ♯ marker to the heading
+    ;; 'invisible - hide only
+    (setq org-tidy-properties-style 'inline))
 
-(defun my/org-remove-results-before-save ()
-  "Remove all #+RESULTS blocks before saving config.org."
-  (when (and (eq major-mode 'org-mode)
-             buffer-file-name
-             (string= (expand-file-name buffer-file-name)
-                      (expand-file-name "config.org" user-emacs-directory)))
-    (org-babel-remove-result-one-or-many 0)))
-(add-hook 'before-save-hook #'my/org-remove-results-before-save)
+  (defun my/org-remove-results-before-save ()
+    "Remove all #+RESULTS blocks before saving config.org."
+    (when (and (eq major-mode 'org-mode)
+               buffer-file-name
+               (string= (expand-file-name buffer-file-name)
+                        (expand-file-name "config.org" user-emacs-directory)))
+      (org-babel-remove-result-one-or-many 0)))
+  (add-hook 'before-save-hook #'my/org-remove-results-before-save)
 #+end_src
 
 ** Moving DONE Tasks (plans.org)
@@ -1354,14 +1354,6 @@ search.
                               "#+title: %<%Y-%m-%d>\n"))))
   ;; Активируем режим
   (org-roam-setup))
-
-
-;; The org-roam side buffer opens in Meow's motion state (see
-;; `meow-mode-state-list'), so its own section keys keep working.
-(with-eval-after-load 'org-roam
-  (define-key org-roam-preview-map (kbd "0") #'beginning-of-line)
-  (define-key org-roam-preview-map (kbd "^") #'back-to-indentation)
-  (define-key org-roam-preview-map (kbd "$") #'end-of-line))
 
 ;; === org-download ==
 (use-package org-download
@@ -2009,100 +2001,84 @@ and paste.  Deletion confirmations are disabled, recursive operations run
 silently, and deleted files go to the Trash.
 
 #+begin_src emacs-lisp
-;;; setup-dired.el --- Dired + Dirvish + Meow -*- lexical-binding: t; -*-
+    ;;; setup-dired.el --- Dired + Dirvish + Meow -*- lexical-binding: t; -*-
 
-(use-package dired-ranger
-  :ensure t
-  :defer t)
+    (use-package dired-ranger
+      :ensure t
+      :defer t)
 
-(use-package dirvish
-  :ensure t
-  :init
-  (dirvish-override-dired-mode)
-  :config
-  ;; ---- внешний вид ----
-  (setq dirvish-attributes '(nerd-icons vc-state file-size file-time))
-  (setq dirvish-subtree-state-style 'nerd)
-  (setq dirvish-path-separators '("  " "  " "  "))
+    (use-package dirvish
+      :ensure t
+      :init
+      (dirvish-override-dired-mode)
+      :config
+      ;; ---- внешний вид ----
+      (setq dirvish-attributes '(nerd-icons vc-state file-size file-time))
+      (setq dirvish-subtree-state-style 'nerd)
+      (setq dirvish-path-separators '("  " "  " "  "))
 
-  ;; ---- toggle-sort по "O" ----
-  (defun my/dirvish-toggle-sort ()
-    "Переключает сортировку Dirvish между лексикографической и по дате."
-    (interactive)
-    (let ((current (dired-get-filename nil t)))
-      (if (string-match-p "time" (or dired-actual-switches ""))
-          (dirvish-quicksort "name")
-        (dirvish-quicksort "time"))
-      (when current
-        (dired-goto-file current))))
+      ;; ---- fd ----
+      (when (executable-find "fd")
+        (require 'dirvish-fd nil t))
 
-  (define-key dirvish-mode-map (kbd "O") #'my/dirvish-toggle-sort)
+      ;; ---- Meow motion-state bindings for dirvish ----
+      (let ((g-map (make-sparse-keymap)))
+        (define-key g-map (kbd "g") #'beginning-of-buffer)
+        (define-key g-map (kbd "r") #'revert-buffer)
+        (define-key dirvish-mode-map (kbd "g") g-map))
+      (define-key dirvish-mode-map (kbd "n") #'isearch-repeat-forward)
+      (define-key dirvish-mode-map (kbd "N") #'isearch-repeat-backward)
+      (define-key dirvish-mode-map (kbd "G") #'end-of-buffer))
 
-  ;; ---- fd ----
-  (when (executable-find "fd")
-    (require 'dirvish-fd nil t))
+    ;; ---- bindings for classic dired (Meow motion state) ----
+    ;; Dired buffers start in motion state, where keys that Meow does not bind
+    ;; fall through to the mode map, so plain `define-key' is enough here.
+    (defun my/dired-meow-bindings ()
+      "My custom Dired bindings for Meow motion state."
+      (define-key dired-mode-map (kbd "h") #'dired-up-directory)
+      (define-key dired-mode-map (kbd "l") #'dired-find-file)
+      (define-key dired-mode-map (kbd "a") #'dired-create-empty-file)
+      (define-key dired-mode-map (kbd "A") #'dired-create-directory)
+      (define-key dired-mode-map (kbd "c") #'dired-ranger-copy)
+      (define-key dired-mode-map (kbd "M") #'dired-ranger-move)
+      (define-key dired-mode-map (kbd "p") #'dired-ranger-paste)
+      (define-key dired-mode-map (kbd "d") #'dired-flag-file-deletion)
+      (define-key dired-mode-map (kbd "i") #'wdired-change-to-wdired-mode)
+      (define-key wdired-mode-map (kbd "<escape>") #'wdired-finish-edit)
+      (define-key dired-mode-map (kbd "m") #'dired-mark)
+      (define-key dired-mode-map (kbd "w") #'dirvish-copy-file-path)
+      (define-key dired-mode-map (kbd "o") #'dired-sort-toggle-or-edit))
 
-  ;; ---- Meow motion-state bindings for dirvish ----
-  (let ((g-map (make-sparse-keymap)))
-    (define-key g-map (kbd "g") #'beginning-of-buffer)
-    (define-key g-map (kbd "r") #'revert-buffer)
-    (define-key dirvish-mode-map (kbd "g") g-map))
-  (define-key dirvish-mode-map (kbd "n") #'isearch-repeat-forward)
-  (define-key dirvish-mode-map (kbd "N") #'isearch-repeat-backward)
-  (define-key dirvish-mode-map (kbd "G") #'end-of-buffer))
+    (add-hook 'dired-mode-hook #'my/dired-meow-bindings)
 
-;; ---- bindings for classic dired (Meow motion state) ----
-;; Dired buffers start in motion state, where keys that Meow does not bind
-;; fall through to the mode map, so plain `define-key' is enough here.
-(defun my/dired-meow-bindings ()
-  "My custom Dired bindings for Meow motion state."
-  (define-key dired-mode-map (kbd "h") #'dired-up-directory)
-  (define-key dired-mode-map (kbd "l") #'dired-find-file)
-  (define-key dired-mode-map (kbd "a") #'dired-create-empty-file)
-  (define-key dired-mode-map (kbd "A") #'dired-create-directory)
-  (define-key dired-mode-map (kbd "c") #'dired-ranger-copy)
-  (define-key dired-mode-map (kbd "M") #'dired-ranger-move)
-  (define-key dired-mode-map (kbd "p") #'dired-ranger-paste)
-  (define-key dired-mode-map (kbd "d") #'dired-do-delete)
-  (define-key dired-mode-map (kbd "i") #'wdired-change-to-wdired-mode)
-  (define-key dired-mode-map (kbd "m") #'dired-mark)
-  (define-key dired-mode-map (kbd "w") #'dirvish-copy-file-path))
+    ;; ---- dired настройки ----
+    (setq dired-listing-switches
+          "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
 
-(add-hook 'dired-mode-hook #'my/dired-meow-bindings)
+    (setq dirvish-header-line-format '(:left (path) :right (free-space)))
+    (setq dirvish-hide-cursor t)
 
-;; ---- dired настройки ----
-(setq dired-listing-switches
-      "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
+    (setq dirvish-use-header-line 'global)
+    (setq dirvish-mode-line-bar-image-width 0)
+    (setq dirvish-header-line-height '(25 . 35))
+    (setq dirvish-mode-line-height 25)
+    (setq dirvish-mode-line-format
+          '(:left (sort file-time " " file-size symlink) :right (omit yank index)))
 
-(setq dirvish-header-line-format '(:left (path) :right (free-space)))
-(setq dirvish-hide-cursor t)
+    ;; ---- БЕЗ ПОДТВЕРЖДЕНИЙ ----
+    (setq dired-recursive-deletes 'always)
+    (setq dired-recursive-copies  'always)
+    ;; ibuffer: x → ibuffer-do-delete
+    (setq ibuffer-confirm-operation-on nil)
 
-(setq dirvish-use-header-line 'global)
-(setq dirvish-mode-line-bar-image-width 0)
-(setq dirvish-header-line-height '(25 . 35))
-(setq dirvish-mode-line-height 25)
-(setq dirvish-mode-line-format
-      '(:left (sort file-time " " file-size symlink) :right (omit yank index)))
+    (use-package dirvish-fd
+      :ensure nil
+      :after dirvish
+      :config
+      (setq dirvish-fd-switches ""))
 
-;; ---- БЕЗ ПОДТВЕРЖДЕНИЙ ----
-;; dired: x → dired-do-flagged-delete
-(setq dired-deletion-confirmer (lambda (_) t))
-;; dired: d → dired-do-delete
-(setq dired-no-confirm '(delete))
-;; рекурсивные операции — молча
-(setq dired-recursive-deletes 'always)
-(setq dired-recursive-copies  'always)
-;; ibuffer: x → ibuffer-do-delete
-(setq ibuffer-confirm-operation-on nil)
-
-(use-package dirvish-fd
-  :ensure nil
-  :after dirvish
-  :config
-  (setq dirvish-fd-switches ""))
-
-(blink-cursor-mode -1)
-(setq delete-by-moving-to-trash t)
+    (blink-cursor-mode -1)
+    (setq delete-by-moving-to-trash t)
 #+end_src
 
 * Version Control (Magit)
@@ -2233,7 +2209,6 @@ Does not kill the org-roam side buffer (`*org-roam*')."
 
 (setq monkeytype-randomize t)
 #+end_src
-
 
 * Opencode
 #+begin_src emacs-lisp
