@@ -134,16 +134,12 @@ Meow provides modal editing with a selection-first model: select text with a
 motion or a "thing" command, then act on the selection.  Four states matter
 here.  Normal state holds the editing commands, insert state types text,
 motion state is used in special buffers (Dired, Agenda, PDF, Magit, ...) where
-the mode's own keys stay available, and keypad state replaces =C-x= and =M-x=
-chords.  The layout is QWERTY.
-
-meow-leader-define-key
+the mode's own keys stay available.
 
 =SPC= is the leader key in normal and motion state.  =SPC= followed by a key
 sequence runs the custom bindings defined with =meow-leader-define-key= (the
 same combinations the old leader map used), and =SPC SPC= opens
-=meow-keypad=.  Inside the keypad Meow normally treats =SPC= as its "literal"
-prefix, so that role is moved to backslash to free =SPC= for this binding.
+=meow-keypad=.
 
 Motion state binds =j= and =k= to =my/meow-motion-next= and
 =my/meow-motion-prev=.  They behave like =meow-next= and =meow-prev= everywhere
@@ -959,117 +955,120 @@ unchecked, checked, and partial states.  The same block binds these commands
 in Meow normal state; insert state keeps Org's own =org-return=.
 
 #+begin_src emacs-lisp
+
+    (defun my/org-item-checkbox-p ()
+      "Non-nil если курсор внутри пункта списка с чекбоксом (в любом месте строки)."
+      (org-element-property :checkbox
+      (org-element-lineage (org-element-context) '(item) t)))
+
   (defun my/org-toggle-checkbox-3way ()
-    "Cycle checkbox: [ ] -> [X] -> [-] -> [ ]."
+    "Cycle checkbox: [ ] -> [X] -> [-] -> [ ].
+  Works from any position within the item line."
     (interactive)
-    (let ((state (org-element-property :checkbox (org-element-context))))
-      (pcase state
-        ('off   (org-toggle-checkbox))        ; [ ] -> [X]
-        ('on    (org-toggle-checkbox '(16)))  ; [X] -> [-]
-        ('trans                               ; [-] -> [ ]
-         (org-toggle-checkbox '(4))           ; remove
-         (org-toggle-checkbox '(4))))))       ; add again
+    (pcase (my/org-item-checkbox-p)
+      ('off   (org-toggle-checkbox))        ; [ ] -> [X]
+      ('on    (org-toggle-checkbox '(16)))  ; [X] -> [-]
+      ('trans                               ; [-] -> [ ]
+       (org-toggle-checkbox '(4))           ; убрать
+       (org-toggle-checkbox '(4))))) 
+    (defun my/org-insert-item-inherit ()
+      "Создать новый пункт списка, сохранив «чекбоксность» текущего."
+      (if (my/org-item-checkbox-p)
+          (org-insert-todo-heading nil)   ; пункт с чекбоксом → новый чекбокс
+        (org-meta-return)))               ; обычный пункт → обычный пункт
 
-  (defun my/org-ret-dwim ()
-    "Smart RET in normal state: links, tables, lists, headings."
-    (interactive)
-    (let* ((element (org-element-context))
-           (item    (org-element-lineage element '(item) t)))
+    (defun my/org-ret-dwim_v2 ()
+      "Smart RET in normal state: links, tables, lists, headings."
+      (interactive)
+      (let* ((element (org-element-context))
+             (item    (org-element-lineage element '(item) t)))
+        (cond
+         ((eq major-mode 'sqlite-mode)
+          (call-interactively 'sqlite-mode-list-data))
+         ((eq 'link (org-element-type element))
+          (org-open-at-point-global))
+         ((org-at-table-p)
+          (org-table-next-row))
+         (item
+          (end-of-line)
+          ;; `item' уже вычислен до end-of-line — читаем :checkbox прямо с него
+          (if (org-element-property :checkbox item)
+              (org-insert-todo-heading nil)
+            (org-meta-return))
+          (meow-insert))
+         ((org-at-heading-p) (org-cycle))
+         (t (call-interactively #'meow-next)))))
+
+    (defun my/org-insert-ret ()
+      "RET in Org insert state: new item in lists, next row in tables."
+      (interactive)
       (cond
-       ((eq major-mode 'sqlite-mode)
-        (call-interactively 'sqlite-mode-list-data))
-       ((eq 'link (org-element-type element))
-        (org-open-at-point-global))
-       ((org-at-table-p)
-        (org-table-next-row))              ; next row, adds one at the end
-       (item
-        (end-of-line)
-        (org-meta-return)                  ; new item: same "-", "+" or "1." type
-        (meow-insert))                     ; and start typing
-       ((org-at-heading-p) (org-cycle))
-       (t (call-interactively #'meow-next)))))
-(defun my/org-ret-dwim_v2 ()
-  "Smart RET in normal state: links, tables, lists, headings."
-  (interactive)
-  (let* ((element (org-element-context))
-         (item    (org-element-lineage element '(item) t)))
-    (cond
-     ((eq major-mode 'sqlite-mode)
-      (call-interactively 'sqlite-mode-list-data))
-     ((eq 'link (org-element-type element))
-      (org-open-at-point-global))
-     ((org-at-table-p)
-      (org-table-next-row))
-     (item
-      (end-of-line)
-      (org-insert-todo-heading nil) ; <-- ИСПРАВЛЕНО: создаёт чекбокс
-      (meow-insert))
-     ((org-at-heading-p) (org-cycle))
-     (t (call-interactively #'meow-next)))))
-
-(defun my/org-insert-ret ()
-  "RET in Org insert state: new item in lists, next row in tables."
-  (interactive)
-  (cond
-   ((org-at-table-p) (org-return))
-   ((org-at-item-p)
-    (if (save-excursion
-          (beginning-of-line)
-          (looking-at "[ \t]*\\(?:[-+*]\\|[0-9]+[.)]\\)[ \t]*\\(?:\\[[ X-]\\][ \t]*\\)?$"))
-        (delete-region (line-beginning-position) (line-end-position)) ; empty item ends the list
-      (org-meta-return)))
-   (t (org-return))))
+       ((org-at-table-p) (org-return))
+       ((org-at-item-p)
+        (if (save-excursion
+              (beginning-of-line)
+              (looking-at "[ \t]*\\(?:[-+*]\\|[0-9]+[.)]\\)[ \t]*\\(?:\\[[ X-]\\][ \t]*\\)?$"))
+            (delete-region (line-beginning-position) (line-end-position))
+          (my/org-insert-item-inherit)))     ; <-- работает в любой позиции в строке
+       (t (org-return))))
 
 
-(defun my/org-tab-dwim ()
-  "TAB: toggle checkbox on checkbox items, `org-cycle' otherwise."
-  (interactive)
-  (if (org-element-property :checkbox (org-element-context))
-      (call-interactively #'my/org-toggle-checkbox-3way)
-    (call-interactively #'org-cycle)))
+    (defun my/org-tab-dwim ()
+      "TAB: toggle checkbox on checkbox items, `org-cycle' otherwise."
+      (interactive)
+      (if (my/org-item-checkbox-p)
+          (call-interactively #'my/org-toggle-checkbox-3way)
+        (call-interactively #'org-cycle)))
 
-(defun my/meow-normal-tab ()
-  "TAB in Meow normal state.
-In Org buffers: toggle checkbox on items, `org-cycle' elsewhere.
-Outside Org: run whatever TAB would do without Meow's normal map."
-  (interactive)
-  (if (derived-mode-p 'org-mode)
-      (my/org-tab-dwim)
-    (let ((cmd (let ((meow-normal-mode nil))
-                 (key-binding (kbd "TAB") t))))
-      (when (commandp cmd)
-        (call-interactively cmd)))))
+    (defun my/org-tab-dwim_v2 ()
+      "TAB: toggle checkbox on checkbox items, `org-cycle' otherwise."
+      (interactive)
+      (if (my/org-item-checkbox-p)
+          (call-interactively #'my/org-toggle-checkbox-3way)
+        (call-interactively #'org-cycle)))
+
+    (defun my/meow-normal-tab ()
+      "TAB in Meow normal state.
+    In Org buffers: toggle checkbox on items, `org-cycle' elsewhere.
+    Outside Org: run whatever TAB would do without Meow's normal map."
+      (interactive)
+      (if (derived-mode-p 'org-mode)
+          (my/org-tab-dwim)
+        (let ((cmd (let ((meow-normal-mode nil))
+                     (key-binding (kbd "TAB") t))))
+          (when (commandp cmd)
+            (call-interactively cmd)))))
 
 
-(with-eval-after-load 'org
-  (define-key org-mode-map (kbd "RET") #'my/org-insert-ret))
-  (defvar meow-normal-mode)
+    (with-eval-after-load 'org
+      (define-key org-mode-map (kbd "RET") #'my/org-insert-ret_v2))
+      (defvar meow-normal-mode)
 
-  (defun my/meow-normal-ret ()
-    "RET in Meow normal state.
-  In Org buffers run `my/org-ret-dwim'; elsewhere run whatever RET would do
-  if Meow's normal-state map were not active."
-    (interactive)
-    (if (derived-mode-p 'org-mode)
-        (my/org-ret-dwim_v2)
-      (let ((cmd (let ((meow-normal-mode nil))
-                   (key-binding (kbd "RET") t))))
-        (when (commandp cmd)
-          (call-interactively cmd)))))
+      (defun my/meow-normal-ret ()
+        "RET in Meow normal state.
+      In Org buffers run `my/org-ret-dwim'; elsewhere run whatever RET would do
+      if Meow's normal-state map were not active."
+        (interactive)
+        (if (derived-mode-p 'org-mode)
+            (my/org-ret-dwim_v3)
+          (let ((cmd (let ((meow-normal-mode nil))
+                       (key-binding (kbd "RET") t))))
+            (when (commandp cmd)
+              (call-interactively cmd)))))
 
-  (defun my/meow-normal-t ()
-    "T in Meow normal state: `org-todo' in Org buffers, `meow-till' elsewhere."
-    (interactive)
-    (if (derived-mode-p 'org-mode)
-        (call-interactively #'org-todo)
-      (call-interactively #'meow-till)))
+      (defun my/meow-normal-t ()
+        "T in Meow normal state: `org-todo' in Org buffers, `meow-till' elsewhere."
+        (interactive)
+        (if (derived-mode-p 'org-mode)
+            (call-interactively #'org-todo)
+          (call-interactively #'meow-till)))
 
-  ;; Insert state keeps Org's own RET (`org-return').
-  (with-eval-after-load 'meow
-    (meow-normal-define-key
-     '("TAB" . my/meow-normal-tab) ;;my/meow-normal-ret)
-     '("RET" . my/meow-normal-ret)
-     '("T"   . my/meow-normal-t)))
+      ;; Insert state keeps Org's own RET (`org-return').
+      (with-eval-after-load 'meow
+        (meow-normal-define-key
+         '("TAB" . my/meow-normal-tab) ;;my/meow-normal-ret)
+         '("RET" . my/meow-normal-ret)
+         '("T"   . my/meow-normal-t)))
 #+end_src
 
 ** Presentations (org-present and org-tree-slide)
@@ -1490,7 +1489,10 @@ view does not filter that individual block; it is preserved unchanged.
   (define-key org-agenda-mode-map (kbd "q")   #'org-agenda-quit)
   (define-key org-agenda-mode-map (kbd "r")   #'org-agenda-redo)
   (define-key org-agenda-mode-map (kbd "RET") #'org-agenda-switch-to)
-  (define-key org-agenda-mode-map (kbd "/")   #'org-agenda-filter-by-tag))
+  (define-key org-agenda-mode-map (kbd "/")   #'org-agenda-filter-by-tag)
+  (define-key org-agenda-mode-map (kbd "n")   #'org-agenda-add-note)
+  (define-key org-agenda-mode-map (kbd "p")   #'org-agenda-priority)
+)
 
 (add-hook 'org-agenda-mode-hook #'my/setup-agenda-meow-keys)
 

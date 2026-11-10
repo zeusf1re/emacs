@@ -10,15 +10,9 @@
 ** TODO [#C] Monkeytype                                        :emacs:fun:
 ** TODO [#B] Email                                            :connection:
 ** TODO [#B] Evil-mode в compilation minibuffer                     :evil:
+- Note taken on [2026-11-10 Tue 00:31] \\
+  нe evil а *MEOW* !!!
 ** TODO [#C] Исправить org-roam-ui                             :task:roam:
-** TODO [#C] Backlinks buffer сделать меньше                        :roam:
-** TODO [#A] Set effort in agenda                                 :agenda:
-** TODO [#A] Set priority in org and agenda                   :org:agenda:
-** TODO [#A] Change smart capture to Inbox in personal            :agenda:
-
-    ("p" "Personal Task" entry
-     (file "~/org/tasks.org")
-     "* %?\n")
 ** TODO completed tasks in Dailies                           :roam:agenda:
 * Бэклог и идеи                                                     :backlog:
 ** TODO [#C] Попробовать vertico-multiform                    :completion:
@@ -84,3 +78,11 @@ org TODO Clear "Urgent" section
 ** DONE Убрать задачи d. if done                                    :agenda:
 ** DONE Sync calendars                                            :calendar:
 ** DONE Clear "Urgent" section                                      :agenda:
+** DONE [#A] Set effort in agenda                                   :agenda:
+** DONE [#A] Change smart capture to Inbox in personal              :agenda:
+
+    ("p" "Personal Task" entry
+     (file "~/org/tasks.org")
+     "* %?\n")
+** DONE [#C] Backlinks buffer сделать меньше                          :roam:
+** DONE [#A] Set priority in org and agenda                     :org:agenda:
