@@ -6,6 +6,11 @@
  ;; If there is more than one, they won't work right.
  '(org-icalendar-combined-agenda-file "~/org-agenda-export.ics")
  '(org-icalendar-include-todo t)
+ '(package-selected-packages
+   '(auctex cape cdlatex colorful-mode company dired-preview dirvish
+            ellama evil flycheck gptel kind-icon magit meow
+            multiple-cursors org org-modern org-present org-tree-slide
+            pdf-tools rainbow-mode yasnippet))
  '(safe-local-variable-values '((org-use-tag-inheritance))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
